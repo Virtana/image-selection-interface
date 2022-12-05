@@ -36,24 +36,29 @@
 // **DO THIS**:
 //   Replace BUCKET_NAME with the bucket name.
 //
-var albumBucketName = '';
-// var albumBucketName = 'virtana-datasets-testing';
+var albumBucketName = 'virtana-image-access';
 
 // Initialize the Amazon Cognito credentials provider
 AWS.config.region = 'us-east-1'; // Region
-AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: '',
-});
 
 // Create a new service object
-var s3 = new AWS.S3({
-  apiVersion: '2006-03-01',
-  params: {Bucket: albumBucketName}
-});
+var s3;
 
 // A utility function to create HTML.
 function getHtml(template) {
   return template.join('\n');
+}
+
+function setCredentials(creds) {
+  AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: creds,
+  });
+
+  s3 = new AWS.S3({
+    apiVersion: '2006-03-01',
+    params: {Bucket: albumBucketName}
+  });
+  alert('Credentials have been set')
 }
 
 // List the photo albums that exist in the bucket.
