@@ -1,0 +1,178 @@
+<!--
+ * Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * This file is licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License. A copy of
+ * the License is located at
+ *
+ * http://aws.amazon.com/apache2.0/
+ *
+ * This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+-->
+
+<!--
+ snippet-comment:[These are tags for the AWS doc team's sample catalog. Do not remove.]
+ snippet-sourcedescription:[s3_PhotoViewer.html demonstrates how to allow viewing of photos in albums stored in an Amazon S3 bucket.]
+ snippet-service:[s3]
+ snippet-keyword:[HTML]
+ snippet-keyword:[Amazon S3]
+ snippet-keyword:[Code Sample]
+ snippet-sourcetype:[full-example]
+ snippet-sourcedate:[2019-05-07]
+ snippet-sourceauthor:[AWS-JSDG]
+-->
+
+<!--
+ ABOUT THIS NODE.JS SAMPLE: This sample is part of the SDK for JavaScript Developer Guide topic at
+ https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/s3-example-photos-view.html
+
+ NOTES:
+ - For the JavaScript code, see s3_PhotoViewer.js.
+ - For IAM role policy and CORS setup, see the JavaScript Developer Guide topic at
+   https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/s3-example-photos-view.html
+-->
+
+<!-- snippet-start:[s3.HTML.s3_PhotoViewer.complete] -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- **DO THIS**: -->
+    <!--   Replace SDK_VERSION_NUMBER with the current SDK version number -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1258.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <script src="./s3_PhotoViewer.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <!-- <script>listAlbums();</script> -->
+    <style>
+      ul {
+        list-style-type: none;
+      }
+
+      li {
+        display: inline-block;
+      }
+
+      input[type="checkbox"][id^="cb"] {
+        display: none;
+      }
+
+      label {
+        border: 1px solid #fff;
+        padding: 10px;
+        display: block;
+        position: relative;
+        margin: 10px;
+        cursor: pointer;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      label::before {
+        background-color: white;
+        color: white;
+        content: " ";
+        display: block;
+        border-radius: 50%;
+        border: 1px solid grey;
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        width: 25px;
+        height: 25px;
+        text-align: center;
+        line-height: 28px;
+        transition-duration: 0.4s;
+        transform: scale(0);
+      }
+
+      label img {
+        height: 100px;
+        width: 100px;
+        transition-duration: 0.2s;
+        transform-origin: 50% 50%;
+      }
+
+      :checked+label {
+        border-color: #0dcaf0;
+      }
+
+      :checked+label::before {
+        content: "✓";
+        background-color: #0dcaf0;
+        transform: scale(1);
+      }
+
+      :checked+label img {
+        transform: scale(0.9);
+        box-shadow: 0 0 5px #0dcaf0;
+        z-index: -1;
+      }
+      body, html {
+        height: 100%;
+        margin: 0;
+      }
+
+      .bg {
+        background-image: url("background2.jpg");
+        height: 100%; 
+        color: whitesmoke;
+
+        /* Center and scale the image nicely */
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+
+      img {
+        height: 100%;
+        width: 100%;
+      }
+      .container {
+        background-image: "background2.jpg";
+        /* background-color: #495057; */
+        color: aliceblue;
+      }
+      .button {
+        background-color: red;
+        border-radius: 50px;
+        border: 2px;
+        color: whitesmoke;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+      }
+
+      </style>
+  </head>
+  <body> 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+    
+    <div class="bg" >
+      <!-- <img src="background2.jpg"> -->
+      <h1>PhotoViewer WebInterface</h1>
+      <div id="header"> </div>
+      <!-- <div >  -->
+      <div id="viewer" style="display:flex; justify-content:center ; flex-wrap: wrap;">
+        <button class="button" style="margin:5px;" onclick="listAlbums()"> Let's Go! </button>
+      </div>
+      <!-- </div> -->
+      <div id="footer"> </div>
+
+    </div>
+    
+  </body>
+</html>
+<!-- snippet-end:[s3.HTML.s3_PhotoViewer.complete] -->
