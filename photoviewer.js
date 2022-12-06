@@ -1,64 +1,21 @@
-/**
- * Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * This file is licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License. A copy of
- * the License is located at
- *
- * http://aws.amazon.com/apache2.0/
- *
- * This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
- */
-
-// snippet-comment:[These are tags for the AWS doc team's sample catalog. Do not remove.]
-// snippet-sourcedescription:[s3_PhotoViewer.js demonstrates how to allow viewing of photos in albums stored in an Amazon S3 bucket.]
-// snippet-service:[s3]
-// snippet-keyword:[JavaScript]
-// snippet-sourcesyntax:[javascript]
-// snippet-keyword:[Amazon S3]
-// snippet-keyword:[Code Sample]
-// snippet-sourcetype:[full-example]
-// snippet-sourcedate:[2019-05-07]
-// snippet-sourceauthor:[AWS-JSDG]
-
-// ABOUT THIS JAVASCRIPT SAMPLE: This sample is part of the SDK for JavaScript Developer Guide topic at
-// https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/s3-example-photos-view.html
-
-// snippet-start:[s3.JavaScript.s3_PhotoViewer.complete]
-//
-// Data constructs and initialization.
-//
-
-// snippet-start:[s3.JavaScript.s3_PhotoViewer.config]
-// **DO THIS**:
-//   Replace BUCKET_NAME with the bucket name.
-//
-var albumBucketName = 'virtana-image-access';
+// constants
+const albumBucketName = 'virtana-image-access';
 
 // Initialize the Amazon Cognito credentials provider
 AWS.config.region = 'us-east-1'; // Region
+AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: 'us-east-1:5a6f6fec-b0db-41df-956a-ffd24d3787f4',
+});
 
 // Create a new service object
-var s3;
+var s3 = new AWS.S3({
+  apiVersion: '2006-03-01',
+  params: {Bucket: albumBucketName}
+});
 
 // A utility function to create HTML.
 function getHtml(template) {
   return template.join('\n');
-}
-
-function setCredentials(creds) {
-  AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: creds,
-  });
-
-  s3 = new AWS.S3({
-    apiVersion: '2006-03-01',
-    params: {Bucket: albumBucketName}
-  });
-  alert('Credentials have been set')
 }
 
 // List the photo albums that exist in the bucket.
@@ -128,11 +85,9 @@ function viewAlbum(albumName) {
     ]
 
     var htmlTemplate = [
-      //'<div style="position:relative ; margin:1rem">',
       '<ul>',
         getHtml(photos),        
       '</ul>'
-      //'</div>',
     ]
 
     var footerTemplate = [
@@ -154,15 +109,35 @@ function viewAlbum(albumName) {
   });
 }
 
-// Save image links to JSON file
+// Make image info object for JSON download
 function onSubmit() {
   var checkboxes = document.getElementsByTagName('input');
   var images = document.getElementsByTagName('img');
 
+  var imageNames = [];
+
   for (var i = 0; i < checkboxes.length; i++) {
     if (checkboxes[i].checked == true) {
-      console.log("Image src: "  + images[i].src);
+      var imageKey = checkboxes[i].id.slice(2) ;
+      imageNames.push(imageKey );
     }
   }
-  // **Add functionality to forward to CloudFactory
+  
+  var csvContent = {
+    "S3Filepath":"s3::/zip-line-daa",
+    "EpisodeName": "2022_11_22_12_30_00_zed_video",
+    "ImagesForAnnotation: ": imageNames
+  };    
+
+  downloadObjectAsJson(csvContent, 'imageData');
+}
+
+function downloadObjectAsJson(exportObj, exportName){
+  var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+  var downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href",     dataStr);
+  downloadAnchorNode.setAttribute("download", exportName + ".json");
+  document.body.appendChild(downloadAnchorNode); // required for firefox
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
 }
