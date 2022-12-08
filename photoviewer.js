@@ -1,8 +1,8 @@
 // constants
-const albumBucketName = 'virtana-image-access';
+const albumBucketName = 'virtana-datasets-testing';
 
 // Initialize the Amazon Cognito credentials provider
-AWS.config.region = 'us-east-1'; // Region
+AWS.config.region = 'us-east-2'; // Region
 
 // A utility function to create HTML.
 function getHtml(template) {
@@ -23,14 +23,23 @@ function setCredentials() {
 
 // List the photo albums that exist in the bucket.
 function listAlbums() {
-  s3.listObjects({Delimiter: '/'}, function(err, data) {
+  s3.listObjects(function(err, data) {
     if (err) {
       alert('There was an error listing your albums: ' + err.message);
       window.location="index.html";
-    } else {      
-      var albums = data.CommonPrefixes.map(function(commonPrefix) {
-        var prefix = commonPrefix.Prefix;
-        var albumName = decodeURIComponent(prefix.replace('/', ''));
+    } else {
+      var imageFolderSet = new Set();
+      data.Contents.forEach(function(bucketObject) {
+        var key = bucketObject.Key;
+        if (key.endsWith('.png')) {
+          keyArray = key.split('/');
+          keyArray = keyArray.slice(1,-1);
+          imageFolderSet.add(keyArray.join('/'));
+        }
+      })
+      var imageFolders = Array.from(imageFolderSet);
+      var albums = imageFolders.map(function(imageFolder) {
+        var albumName = imageFolder;
         return getHtml([
           '<li>',
             '<button class="button" style="margin:5px;" onclick="viewAlbum(\'' + albumName + '\')">',
@@ -60,7 +69,7 @@ function listAlbums() {
 
 // Show the photos that exist in an album.
 function viewAlbum(albumName) {
-  var albumPhotosKey = encodeURIComponent(albumName) + '/';
+  var albumPhotosKey = 'vision-datasets/' + albumName + '/';
   s3.listObjects({Prefix: albumPhotosKey}, function(err, data) {
     if (err) {
       return alert('There was an error viewing your album: ' + err.message);
