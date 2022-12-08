@@ -8,11 +8,27 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>avocado</title>
+    <script>setCredentials();</script>
   </head>
-  <body> 
+  <body>     
+    <!-- Menu -->
+    <div class="hamburger-menu">
+      <input id="menu__toggle" type="checkbox" />
+      <label class="menu__btn" for="menu__toggle">
+        <span></span>
+      </label>
+  
+      <ul class="menu__box">
+        <li><a class="menu__item" href="./index.html"> Home</a></li>
+        <li><a class="menu__item" href="./photoviewer.html">Semantic Segmentation</a></li>
+        <li><a class="menu__item" href="#">Integrated Data Collection</a></li>
+        <li><a class="menu__item" href="#">Ground Truth</a></li>
+      </ul>
+    </div>
+
     <!-- Cognito Credentials -->
     <div class="bg" >
-        <h1>Image Selection</h1>
+        <h1 style="text-align: center; color:#1f2837">Image Selection</h1>
         <div id="header"> </div>
         <div id="viewer" style="display:flex; justify-content:center ; flex-wrap: wrap;">
             <button class="button" style="margin:5px;" onclick="listAlbums()"> List Albums </button>

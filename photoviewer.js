@@ -3,26 +3,30 @@ const albumBucketName = 'virtana-image-access';
 
 // Initialize the Amazon Cognito credentials provider
 AWS.config.region = 'us-east-1'; // Region
-AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: 'us-east-1:5a6f6fec-b0db-41df-956a-ffd24d3787f4',
-});
-
-// Create a new service object
-var s3 = new AWS.S3({
-  apiVersion: '2006-03-01',
-  params: {Bucket: albumBucketName}
-});
 
 // A utility function to create HTML.
 function getHtml(template) {
   return template.join('\n');
 }
 
+function setCredentials() {  
+  var creds = localStorage.getItem("creds");
+  AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: creds,
+  });
+
+  s3 = new AWS.S3({
+    apiVersion: '2006-03-01',
+    params: {Bucket: albumBucketName}
+  });  
+}
+
 // List the photo albums that exist in the bucket.
 function listAlbums() {
   s3.listObjects({Delimiter: '/'}, function(err, data) {
     if (err) {
-      return alert('There was an error listing your albums: ' + err.message);
+      alert('There was an error listing your albums: ' + err.message);
+      window.location="index.html";
     } else {      
       var albums = data.CommonPrefixes.map(function(commonPrefix) {
         var prefix = commonPrefix.Prefix;
@@ -64,8 +68,8 @@ function viewAlbum(albumName) {
     var photos = data.Contents.map(function(photo) {
       var photoUrl = s3.getSignedUrl('getObject', {Key: photo.Key});
       return getHtml([
-        '<li><input type="checkbox" id="cb' + photo.Key + '" />',
-          '<label for="cb' + photo.Key + '"><img src="' + photoUrl + '" /></label>',
+        '<li class="gallery_list_obj"><input type="checkbox" id="cb' + photo.Key + '" />',
+          '<label class="gallery_obj_selection" for="cb' + photo.Key + '"><img src="' + photoUrl + '" /></label>',
         '</li>'
       ]);
     });
@@ -74,7 +78,7 @@ function viewAlbum(albumName) {
       '<p>There are no photos in this album.</p>';
     var headerTemplate = [
       '<div>',
-        '<button onclick="listAlbums()">',
+        '<button class="button" onclick="listAlbums()">',
           'Back To Albums',
         '</button>',
       '</div>',
@@ -85,7 +89,7 @@ function viewAlbum(albumName) {
     ]
 
     var htmlTemplate = [
-      '<ul>',
+      '<ul id="gallery__list">',
         getHtml(photos),        
       '</ul>'
     ]
@@ -93,12 +97,12 @@ function viewAlbum(albumName) {
     var footerTemplate = [
       '<h2>',
         'End of Album: ' + albumName,
-        '<button onclick="onSubmit()">',
+        '<button class="button" onclick="onSubmit()">',
           'SUBMIT',
         '</button>',
       '</h2>',
       '<div>',
-        '<button onclick="listAlbums()">',
+        '<button class="button" onclick="listAlbums()">',
           'Back To Albums',
         '</button>',
       '</div>'
@@ -112,23 +116,18 @@ function viewAlbum(albumName) {
 // Make image info object for JSON download
 function onSubmit() {
   var checkboxes = document.getElementsByTagName('input');
-  var images = document.getElementsByTagName('img');
-
   var imageNames = [];
-
   for (var i = 0; i < checkboxes.length; i++) {
     if (checkboxes[i].checked == true) {
       var imageKey = checkboxes[i].id.slice(2) ;
       imageNames.push(imageKey );
     }
-  }
-  
+  }  
   var csvContent = {
     "S3Filepath":"s3::/zip-line-daa",
     "EpisodeName": "2022_11_22_12_30_00_zed_video",
     "ImagesForAnnotation: ": imageNames
-  };    
-
+  };
   downloadObjectAsJson(csvContent, 'imageData');
 }
 
