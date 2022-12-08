@@ -125,21 +125,24 @@ function viewAlbum(albumName) {
 // Make image info object for JSON download
 function onSubmit(albumName) {
   var checkboxes = document.getElementsByTagName('input');
+  var path = checkboxes[1].id.slice(2)
+  var pathAsArray = path.split('/')
+  var episode = pathAsArray.at(-2) + '/'
+  pathAsArray.splice(pathAsArray.length -2, 2)
+  var prefix = "s3://" + albumBucketName + '/' + pathAsArray.join('/') + '/'
   var imageNames = [];
   for (var i = 0; i < checkboxes.length; i++) {
-    if (checkboxes[i].checked == true) {
-      var imageKey = checkboxes[i].id.slice(2) ;
-      imageKey = imageKey.split('/');
-      imageNames.push(imageKey.slice(-1)[0]);
+    if (checkboxes[i].checked) {
+      var imageKeyArray = checkboxes[i].id.slice(2).split('/');
+      imageNames.push(imageKeyArray.at(-1));
     }
-  }  
+  }
   var jsonContent = {
-    "S3Filepath": albumBucketName,
-    "EpisodeName": albumName,
+    "Prefix": prefix,
+    "EpisodeName": episode,
     "ImagesForAnnotation: ": imageNames
   };
-  // downloadObjectAsJson(jsonContent, 'imageData');
-  uploadJsonToS3(albumName, jsonContent);
+  downloadObjectAsJson(jsonContent, 'imageData');
 }
 
 function downloadObjectAsJson(exportObj, exportName){
