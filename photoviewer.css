@@ -168,9 +168,9 @@ height: 100%;
 width: 100%;
 }
 
-img:hover {
-    transform: scale(4);
-    z-index: 999;
+.gallery_obj_selection:hover {
+  transform: scale(4);
+  z-index: 2;
 }
 
 .container {

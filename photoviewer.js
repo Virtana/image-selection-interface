@@ -106,7 +106,7 @@ function viewAlbum(albumName) {
     var footerTemplate = [
       '<h2>',
         'End of Album: ' + albumName,
-        '<button class="button" onclick="onSubmit()">',
+        '<button class="button" onclick="onSubmit(\'' + albumName + '\')">',
           'SUBMIT',
         '</button>',
       '</h2>',
@@ -123,21 +123,23 @@ function viewAlbum(albumName) {
 }
 
 // Make image info object for JSON download
-function onSubmit() {
+function onSubmit(albumName) {
   var checkboxes = document.getElementsByTagName('input');
   var imageNames = [];
   for (var i = 0; i < checkboxes.length; i++) {
     if (checkboxes[i].checked == true) {
       var imageKey = checkboxes[i].id.slice(2) ;
-      imageNames.push(imageKey );
+      imageKey = imageKey.split('/');
+      imageNames.push(imageKey.slice(-1)[0]);
     }
   }  
-  var csvContent = {
-    "S3Filepath":"s3::/zip-line-daa",
-    "EpisodeName": "2022_11_22_12_30_00_zed_video",
+  var jsonContent = {
+    "S3Filepath": albumBucketName,
+    "EpisodeName": albumName,
     "ImagesForAnnotation: ": imageNames
   };
-  downloadObjectAsJson(csvContent, 'imageData');
+  // downloadObjectAsJson(jsonContent, 'imageData');
+  uploadJsonToS3(albumName, jsonContent);
 }
 
 function downloadObjectAsJson(exportObj, exportName){
@@ -149,3 +151,28 @@ function downloadObjectAsJson(exportObj, exportName){
   downloadAnchorNode.click();
   downloadAnchorNode.remove();
 }
+
+function uploadJsonToS3(albumName, exportObj) {
+  
+  var JsonKey = 'vision-datasets/' + albumName + ".json"
+
+  // Use S3 ManagedUpload class as it supports multipart uploads
+  var upload = new AWS.S3.ManagedUpload({
+    params: {
+      Bucket: albumBucketName,
+      Key: JsonKey,
+      Body: JSON.stringify(exportObj),
+    }
+  });
+
+  var promise = upload.promise();
+  promise.then(
+    function(data) {
+      alert("Successfully uploaded JSON file.");
+    },
+    function(err) {
+      return alert("There was an error uploading the JSON file: ", err.message);
+    }
+  );
+}
+
