@@ -128,8 +128,8 @@ transform: scale(0);
 }
 
 .gallery_obj_selection img {
-height: 100px;
-width: 100px;
+height: 200px;
+width: 200px;
 transition-duration: 0.2s;
 transform-origin: 50% 50%;
 }
@@ -187,4 +187,15 @@ text-align: center;
 text-decoration: none;
 display: inline-block;
 font-size: 16px;
+}
+
+.download_button {
+  background-color: red;
+  border: 2px;
+  color: whitesmoke;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
 }

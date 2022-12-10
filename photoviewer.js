@@ -21,6 +21,19 @@ function setCredentials() {
   });  
 }
 
+function imageKeyToEpisodeName(key) {
+  keyArray = key.split('/');
+  keyArray = keyArray.slice(1,-1);
+  return keyArray.join('/');
+}
+
+function jsonKeyToEpisodeName(key) {
+  key = key.slice(0,-5);
+  keyArray = key.split('/');
+  keyArray = keyArray.slice(1, keyArray.length);
+  return keyArray.join('/');
+}
+
 // List the photo albums that exist in the bucket.
 function listAlbums() {
   s3.listObjects(function(err, data) {
@@ -28,26 +41,38 @@ function listAlbums() {
       alert('There was an error listing your albums: ' + err.message);
       window.location="index.html";
     } else {
-      var imageFolderSet = new Set();
+      var episodes = new Map();
+
       data.Contents.forEach(function(bucketObject) {
         var key = bucketObject.Key;
         if (key.endsWith('.png')) {
-          keyArray = key.split('/');
-          keyArray = keyArray.slice(1,-1);
-          imageFolderSet.add(keyArray.join('/'));
+          episodes.set(imageKeyToEpisodeName(key), '')
         }
       })
-      var imageFolders = Array.from(imageFolderSet);
-      var albums = imageFolders.map(function(imageFolder) {
-        var albumName = imageFolder;
-        return getHtml([
+      data.Contents.forEach(function(bucketObject) {
+        var key = bucketObject.Key;
+        if (key.endsWith('.json')) {
+          episodes.set(jsonKeyToEpisodeName(key), key);
+        }
+      })
+
+      var albums = new Array();
+      episodes.forEach(function(jsonKey, episodeName) {
+        var htmlElements = [
           '<li>',
-            '<button class="button" style="margin:5px;" onclick="viewAlbum(\'' + albumName + '\')">',
-              albumName,
-            '</button>',
-          '</li>'
-        ]);
+            '<button class="button" style="margin:5px;" onclick="viewAlbum(\'' + episodeName + '\')">',
+              episodeName,
+            '</button>'
+        ];
+        if (jsonKey != '') {
+          htmlElements.push('<button class="download_button" style="margin:5px;" onclick="downloadImages(\'' + jsonKey + '\')">',
+                            "Download",
+                            '</button>')
+        }
+        htmlElements.push('</li>');
+        albums.push(getHtml(htmlElements));
       });
+
       var message = albums.length ?
         getHtml([
           '<p>Click on an album name to view it.</p>',
@@ -127,9 +152,8 @@ function onSubmit(albumName) {
   var checkboxes = document.getElementsByTagName('input');
   var path = checkboxes[1].id.slice(2)
   var pathAsArray = path.split('/')
-  var episode = pathAsArray.at(-2) + '/'
-  pathAsArray.splice(pathAsArray.length -2, 2)
-  var prefix = "s3://" + albumBucketName + '/' + pathAsArray.join('/') + '/'
+  var episode = pathAsArray.slice(1,-1).join('/') + '/'
+  var prefix = "s3://" + albumBucketName + '/' + pathAsArray.at(0) + '/'
   var imageNames = [];
   for (var i = 0; i < checkboxes.length; i++) {
     if (checkboxes[i].checked) {
@@ -140,24 +164,59 @@ function onSubmit(albumName) {
   var jsonContent = {
     "Prefix": prefix,
     "EpisodeName": episode,
-    "ImagesForAnnotation: ": imageNames
+    "ImagesForAnnotation": imageNames
   };
-  downloadObjectAsJson(jsonContent, 'imageData');
+  uploadJsonToS3(episode, jsonContent)
 }
 
-function downloadObjectAsJson(exportObj, exportName){
-  var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
-  var downloadAnchorNode = document.createElement('a');
-  downloadAnchorNode.setAttribute("href",     dataStr);
-  downloadAnchorNode.setAttribute("download", exportName + ".json");
-  document.body.appendChild(downloadAnchorNode); // required for firefox
-  downloadAnchorNode.click();
-  downloadAnchorNode.remove();
+function downloadImages(jsonKey) {
+  var jsonUrl = s3.getSignedUrl('getObject', {Key: jsonKey});
+  fetch(jsonUrl)
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (data) {
+      var jsonObject = data;
+      var imageKeys = new Array();
+      jsonObject["ImagesForAnnotation"].forEach(function(imageName){
+        imageKeys.push(jsonObject["Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + imageName);
+      })
+      var signedURLs = new Array();
+      imageKeys.forEach(function(imageKey) {
+        signedURLs.push(s3.getSignedUrl('getObject', {Key: imageKey}));
+      })
+
+      console.log(signedURLs);
+      var downloadAnchorNode = document.createElement('a');
+      document.body.appendChild(downloadAnchorNode); // required for firefox
+      downloadAnchorNode.style.display = 'none';
+   
+      signedURLs.forEach(function(url) {
+
+        downloadAnchorNode.setAttribute("href", url);
+        downloadAnchorNode.setAttribute("download", url);
+        downloadAnchorNode.click();
+        // downloadAnchorNode.remove();
+      
+      })
+      document.body.removeChild(downloadAnchorNode); // required for firefox
+
+    })
 }
 
-function uploadJsonToS3(albumName, exportObj) {
-  
-  var JsonKey = 'vision-datasets/' + albumName + ".json"
+// function downloadObjectAsJson(exportObj, exportName){
+//   var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+//   var downloadAnchorNode = document.createElement('a');
+//   downloadAnchorNode.setAttribute("href",     dataStr);
+//   downloadAnchorNode.setAttribute("download", exportName + ".json");
+//   document.body.appendChild(downloadAnchorNode); // required for firefox
+//   downloadAnchorNode.click();
+//   downloadAnchorNode.remove();
+// }
+
+function uploadJsonToS3(episodeName, exportObj) {
+
+  var JsonKey = 'vision-datasets/' + episodeName.slice(0,-1) + ".json"
 
   // Use S3 ManagedUpload class as it supports multipart uploads
   var upload = new AWS.S3.ManagedUpload({
