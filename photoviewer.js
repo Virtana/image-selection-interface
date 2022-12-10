@@ -185,6 +185,7 @@ function downloadImages(jsonKey) {
 
 // Make and push JSON file specifying user-selected images
 function onSubmit() {
+  var checkboxes = document.getElementsByTagName('input');
   var path = checkboxes[1].id.slice(2);
   var pathAsArray = path.split('/');
 
@@ -194,10 +195,14 @@ function onSubmit() {
   // This is included to help someone who may want to manually access the images
   var prefix = "s3://" + albumBucketName + '/' + pathAsArray.at(0) + '/';
 
-  var imageNames = checkboxes.map(function(checkbox) {
+  var imageNames = Array.from(checkboxes).map(function(checkbox) {
     if (checkbox.checked) {
       var imageKeyArray = checkbox.id.slice(2).split('/');
       return imageKeyArray.at(-1);
+    }
+  }).filter(function(element) {
+    if (element != null) {
+      return element;
     }
   });
 
