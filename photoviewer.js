@@ -159,6 +159,7 @@ function viewEpisode(episodeName) {
 
 // Download images from the bucket specified by an existing JSON file for the episode
 function downloadImages(jsonKey) {
+  
   var signedJsonUrl = s3.getSignedUrl('getObject', {Key: jsonKey});
 
   fetch(signedJsonUrl)
@@ -166,20 +167,31 @@ function downloadImages(jsonKey) {
       return response.json();
     })
     .then(function (jsonObject) {
+      var imageNameToUrl = new Map();
       // Iterate over image names and get pre-signed URLs for each that we can use to download from
-      var signedImageUrls = jsonObject["ImagesForAnnotation"].map(function(imageName) {
+      jsonObject["ImagesForAnnotation"].forEach(function(imageName) {
         var imageKey = jsonObject["s3Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + imageName;
-        return s3.getSignedUrl('getObject', {Key: imageKey})
-      });
-      
-      signedImageUrls.forEach(function(url) {
-        var downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", url);
-        downloadAnchorNode.setAttribute("download", "image.png");
-        document.body.appendChild(downloadAnchorNode); // required for firefox
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-      });
+        var signedImageUrl = s3.getSignedUrl('getObject', {Key: imageKey});
+        imageNameToUrl.set(imageName, signedImageUrl);
+      })
+
+      imageNameToUrl.forEach(function(signedUrl,imageName) {
+        setTimeout(() => {
+          fetch(signedUrl)
+            .then(resp => resp.blob())
+            .then(blob => {
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              a.download = imageName;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+            })
+            .catch(() => alert('Error downloading ' + imageName));
+        }, 1000);
+      })
     });
 }
 
@@ -237,13 +249,3 @@ function uploadJsonToS3(episodeName, jsonObject) {
     }
   );
 }
-
-// function downloadObjectAsJson(exportObj, exportName){
-//   var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
-//   var downloadAnchorNode = document.createElement('a');
-//   downloadAnchorNode.setAttribute("href",     dataStr);
-//   downloadAnchorNode.setAttribute("download", exportName + ".json");
-//   document.body.appendChild(downloadAnchorNode); // required for firefox
-//   downloadAnchorNode.click();
-//   downloadAnchorNode.remove();
-// }
