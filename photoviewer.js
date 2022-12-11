@@ -156,7 +156,6 @@ function viewEpisode(episodeName) {
     document.getElementById('footer').innerHTML = getHtml(footerTemplate);
   });
 }
-
 // Download images from the bucket specified by an existing JSON file for the episode
 function downloadImages(jsonKey) {
   
@@ -173,25 +172,23 @@ function downloadImages(jsonKey) {
         var imageKey = jsonObject["s3Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + imageName;
         var signedImageUrl = s3.getSignedUrl('getObject', {Key: imageKey});
         imageNameToUrl.set(imageName, signedImageUrl);
-      })
-
-      imageNameToUrl.forEach(function(signedUrl,imageName) {
-        setTimeout(() => {
-          fetch(signedUrl)
-            .then(resp => resp.blob())
-            .then(blob => {
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.style.display = 'none';
-              a.href = url;
-              a.download = imageName;
-              document.body.appendChild(a);
-              a.click();
-              window.URL.revokeObjectURL(url);
-            })
-            .catch(() => alert('Error downloading ' + imageName));
-        }, 1000);
-      })
+      });
+      var promises = new Array();
+      var zip = JSZip();
+      imageNameToUrl.forEach(function(signedUrl, imageName) {
+        promises.push(fetch(signedUrl)
+        .then(resp => resp.blob())
+        .then(blob => {
+          zip.file('imagesForAnnotation/' + imageName, blob);
+        })
+        .catch(() => alert('Error downloading ' + imageName)));
+      });
+      Promise.all(promises).then(() => {
+        zip.generateAsync({type: 'blob'}).then(function(zipFile) {
+          var currentDate = new Date().getTime();
+          return saveAs(zipFile, `imagesForAnnotation_${currentDate}.zip`);
+        });
+      });
     });
 }
 
