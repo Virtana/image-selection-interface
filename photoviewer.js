@@ -34,9 +34,23 @@ function jsonKeyToEpisodeName(key) {
   keyArray = keyArray.slice(1, keyArray.length);
   return keyArray.join('/');
 }
-
+ 
+function addSections() {
+  var headerDiv = document.createElement('div');
+  var viewerDiv = document.createElement('div');
+  var footerDiv = document.createElement('div');
+  headerDiv.id = 'header';
+  viewerDiv.id = 'viewer';
+  footerDiv.id = 'footer';
+  document.getElementById("pv").appendChild(headerDiv);
+  document.getElementById("pv").appendChild(viewerDiv);
+  document.getElementById("pv").appendChild(footerDiv);
+ }
+ 
 // List the episodes that exist in the bucket
 function listEpisodes() {
+  // add div sections for gallery viewing
+  addSections();
   s3.listObjects(function(err, data) {
     if (err) {
       alert('There was an error accessing bucket: ' + err.message);
@@ -70,7 +84,7 @@ function listEpisodes() {
         // Button to view the images from an episode
         var htmlElements = [
           '<li>',
-            '<button class="button" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
+            '<button class="basic_btn" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
               episodeName,
             '</button>'
         ];
@@ -85,16 +99,15 @@ function listEpisodes() {
       });
 
       var message = episodesHtml.length ?
-        getHtml([
-          '<p>Click on an episode to view images.</p>',
-        ]) :
-        '<p>No episodes could be found.';
+          '<p>Click on an episode to view images.</p>' : '<p>No episodes could be found.';
       var htmlTemplate = [
-        '<h2>Episodes</h2>',
-        message,
-        '<ul>',
-          getHtml(episodesHtml),
-        '</ul>',
+        '<div class="general_card">',
+          '<h2>Episodes</h2>',
+          message,
+          '<ul>',
+            getHtml(episodesHtml),
+          '</ul>',
+        '</div>'
       ];
       document.getElementById('header').innerHTML = getHtml(htmlTemplate);
       document.getElementById('viewer').innerHTML = "";
@@ -122,15 +135,15 @@ function viewEpisode(episodeName) {
       '<p>We found ' + imagesHtml.length + ' images: </p>' :
       '<p>No images found. This is likely an error.</p>';
     var headerTemplate = [
-      '<div>',
-        '<button class="button" onclick="listEpisodes()">',
+      '<div class="general_card">',
+        '<button class="basic_btn" onclick="listEpisodes()">',
           'Back To Episodes',
         '</button>',
-      '</div>',
-      '<h2>',
-        'Episode: ' + episodeName,
-      '</h2>',
-      message
+        '<h2>',
+          'Episode: ' + episodeName,
+        '</h2>',
+        message,
+      '</div>'
     ];
     var htmlTemplate = [
       '<ul id="gallery__list">',
@@ -138,15 +151,15 @@ function viewEpisode(episodeName) {
       '</ul>'
     ];
     var footerTemplate = [
+      '<div class="general_card">',
       '<h2>',
         'End of Episode: ' + episodeName,
-        '<button class="button" onclick="onSubmit()">',
+        '<button class="basic_btn" onclick="onSubmit()">',
           'Submit selected images. This will push a JSON file to the bucket specifying the chosen images.' +
           'This will replace any selection that may already exist.',
         '</button>',
       '</h2>',
-      '<div>',
-        '<button class="button" onclick="listEpisodes()">',
+        '<button class="basic_btn" onclick="listEpisodes()">',
           'Back To Episodes',
         '</button>',
       '</div>'
@@ -240,6 +253,10 @@ function uploadJsonToS3(episodeName, jsonObject) {
   promise.then(
     function() {
       alert("Successfully uploaded JSON file.");
+      window.location="photoviewer.html";
+      // ** pass info to do this when the page reloads **
+      // var button = document.getElementById("list_episodes");
+      // button.click();   
     },
     function(err) {
       return alert("There was an error uploading the JSON file: ", err.message);

@@ -12,7 +12,7 @@
     <title>Image selection</title>
     <script>setCredentials();</script>
   </head>
-  <body>     
+  <body class="bg">     
     <!-- Menu -->
     <div class="hamburger-menu">
       <input id="menu__toggle" type="checkbox" />
@@ -28,14 +28,16 @@
       </ul>
     </div>
 
+ 
     <!-- Cognito Credentials -->
-    <div class="bg" >
-        <h1 style="text-align: center; color:#1f2837">Image Selection</h1>
-        <div id="header"> </div>
-        <div id="viewer" style="display:flex; justify-content:center ; flex-wrap: wrap;">
-            <button class="button" style="margin:5px;" onclick="listEpisodes()"> List Episodes </button>
+    <div id="pv">
+      <!-- card content -->
+      <div class="card">
+        <div class="card-body">
+          <h1 class="card-title">Image Selection</h1>
+          <button id="list_episodes" class="basic_btn" style="margin:5px;" onclick="listEpisodes()"> List Albums </button>
         </div>
-        <div id="footer"> </div>
-    </div>      
-    </body>
-  </html>
+      </div>
+    </div>        
+  </body>
+</html>
