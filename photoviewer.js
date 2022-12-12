@@ -10,7 +10,7 @@ function getHtml(template) {
 }
 
 // Set credentials and initialize s3 bucket
-function setCredentials() {  
+function setCredentials() {
   var creds = localStorage.getItem("creds");
   AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: creds
@@ -18,18 +18,18 @@ function setCredentials() {
 
   s3 = new AWS.S3({
     apiVersion: '2006-03-01',
-    params: {Bucket: albumBucketName}
+    params: { Bucket: albumBucketName }
   });
 }
 
 // Get name of the episode from different file keys
 function imageKeyToEpisodeName(key) {
   var keyArray = key.split('/');
-  keyArray = keyArray.slice(1,-1);
+  keyArray = keyArray.slice(1, -1);
   return keyArray.join('/');
 }
 function jsonKeyToEpisodeName(key) {
-  key = key.slice(0,-5);
+  key = key.slice(0, -5);
   var keyArray = key.split('/');
   keyArray = keyArray.slice(1, keyArray.length);
   return keyArray.join('/');
@@ -63,7 +63,7 @@ function listEpisodes() {
   s3.listObjects(function(err, data) {
     if (err) {
       alert('There was an error accessing bucket: ' + err.message);
-      window.location="index.html";
+      window.location = "index.html";
     } else {
       // Map episodes to their accompanying json file
       // The json file means the episode has already been down-selected from, it contains names of the images chosen for annotation
@@ -71,7 +71,7 @@ function listEpisodes() {
 
       // Go through all images to determine what episodes have images in the bucket that we can down-select from
       // We initialize all episodes' accompanying json file in the map as non-existent
-      data.Contents.forEach(function(bucketObject) {
+      data.Contents.forEach(function (bucketObject) {
         var key = bucketObject.Key;
         if (key.endsWith('.png')) {
           episodeToJsonFile.set(imageKeyToEpisodeName(key), '');
@@ -79,7 +79,7 @@ function listEpisodes() {
       })
 
       // Find all json files and update map to reflect that they exist for the appropriate episode
-      data.Contents.forEach(function(bucketObject) {
+      data.Contents.forEach(function (bucketObject) {
         var key = bucketObject.Key;
         if (key.endsWith('.json')) {
           episodeToJsonFile.set(jsonKeyToEpisodeName(key), key);
@@ -89,7 +89,7 @@ function listEpisodes() {
       // Array to store the HTML elements that will represent each available episode
       var episodesHtml = new Array();
 
-      episodeToJsonFile.forEach(function(jsonKey, episodeName) {
+      episodeToJsonFile.forEach(function (jsonKey, episodeName) {
         // Button to view the images from an episode
         var htmlElements = [
           '<li>',
@@ -119,8 +119,18 @@ function listEpisodes() {
           '</ul>',
         '</div>'
       ];
+
+      var jsonKeys = Array.from(episodeToJsonFile.values()).filter(key => key != "");
+      var footerTemplate = jsonKeys.length ?
+        getHtml([
+          '<button class="download_button" onclick="downloadAllImages(\'' + jsonKeys + '\')">',
+          'Download selected images from all episodes',
+          '</button>',
+        ]) :
+        "No episodes have been down-selected yet";
+
       document.getElementById('header').innerHTML = getHtml(htmlTemplate);
-      document.getElementById('viewer').innerHTML = "";
+      document.getElementById('viewer').innerHTML = footerTemplate;
       document.getElementById('footer').innerHTML = "";
     }
   });  
@@ -130,15 +140,15 @@ function listEpisodes() {
 // Display the images in a given episode
 function viewEpisode(episodeName) {
   var episodeImageFolderKey = 'vision-datasets/' + episodeName + '/';
-  s3.listObjects({Prefix: episodeImageFolderKey}, function(err, data) {
+  s3.listObjects({ Prefix: episodeImageFolderKey }, function (err, data) {
     if (err) {
       return alert('There was an error viewing your album: ' + err.message);
     }
-    var imagesHtml = data.Contents.map(function(imageObject) {
-      var signedImageUrl = s3.getSignedUrl('getObject', {Key: imageObject.Key});
+    var imagesHtml = data.Contents.map(function (imageObject) {
+      var signedImageUrl = s3.getSignedUrl('getObject', { Key: imageObject.Key });
       return getHtml([
         '<li class="gallery_list_obj"><input type="checkbox" id="cb' + imageObject.Key + '" />',
-          '<label class="gallery_obj_selection" for="cb' + imageObject.Key + '"><img src="' + signedImageUrl + '" /></label>',
+        '<label class="gallery_obj_selection" for="cb' + imageObject.Key + '"><img src="' + signedImageUrl + '" /></label>',
         '</li>'
       ]);
     });
@@ -159,7 +169,7 @@ function viewEpisode(episodeName) {
     ];
     var htmlTemplate = [
       '<ul id="gallery__list">',
-        getHtml(imagesHtml),        
+      getHtml(imagesHtml),
       '</ul>'
     ];
     var footerTemplate = [
@@ -193,39 +203,75 @@ function viewEpisode(episodeName) {
 
 // Download images from the bucket specified by an existing JSON file for the episode
 function downloadImages(jsonKey) {
-  
-  var signedJsonUrl = s3.getSignedUrl('getObject', {Key: jsonKey});
+
+  var signedJsonUrl = s3.getSignedUrl('getObject', { Key: jsonKey });
 
   fetch(signedJsonUrl)
-    .then(function (response) {
-      return response.json();
-    })
+    .then((response) => response.json())
     .then(function (jsonObject) {
       var imageNameToUrl = new Map();
       // Iterate over image names and get pre-signed URLs for each that we can use to download from
-      jsonObject["ImagesForAnnotation"].forEach(function(imageName) {
+      jsonObject["ImagesForAnnotation"].forEach(function (imageName) {
         var imageKey = jsonObject["s3Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + imageName;
-        var signedImageUrl = s3.getSignedUrl('getObject', {Key: imageKey});
-        imageNameToUrl.set(imageName, signedImageUrl);
+        var signedImageUrl = s3.getSignedUrl('getObject', { Key: imageKey });
+        return imageNameToUrl.set(imageName, signedImageUrl);
       });
       var promises = new Array();
       var zip = JSZip();
-      imageNameToUrl.forEach(function(signedUrl, imageName) {
+      imageNameToUrl.forEach(function (signedUrl, imageName) {
         promises.push(fetch(signedUrl)
-        .then(resp => resp.blob())
-        .then(blob => {
-          zip.file('imagesForAnnotation/' + imageName, blob);
-        })
-        .catch(() => alert('Error downloading ' + imageName)));
+          .then(resp => resp.blob())
+          .then(blob => zip.file('imagesForAnnotation/' + imageName, blob))
+          .catch(() => alert('Error downloading ' + imageName)));
       });
       Promise.all(promises).then(() => {
-        zip.generateAsync({type: 'blob'}).then(function(zipFile) {
+        zip.generateAsync({ type: 'blob' }).then(function (zipFile) {
           var currentDate = new Date().getTime();
           return saveAs(zipFile, `imagesForAnnotation_${currentDate}.zip`);
         });
       });
     });
 }
+
+async function downloadAllImages(jsonKeys) {
+  jsonKeys = jsonKeys.split(',').filter(key => key != "");
+
+  var signedJsonUrls = jsonKeys.map(function (key) {
+    return s3.getSignedUrl('getObject', { Key: key })
+  });
+
+  var jsonFetchPromises = new Array();
+  var imageNameToUrl = new Map();
+  signedJsonUrls.forEach(function (jsonUrl) {
+    jsonFetchPromises.push(fetch(jsonUrl)
+      .then((response) => response.json())
+      .then(function (jsonObject) {
+        jsonObject["ImagesForAnnotation"].forEach(function (imageName) {
+          var imageKey = jsonObject["s3Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + imageName;
+          var signedImageUrl = s3.getSignedUrl('getObject', { Key: imageKey });
+          return imageNameToUrl.set(imageName, signedImageUrl);
+        });
+      }));
+  });
+
+  var imageFetchPromises = new Array();
+  var zip = JSZip();
+
+  await Promise.all(jsonFetchPromises);
+  imageNameToUrl.forEach(function (signedUrl, imageName) {
+    imageFetchPromises.push(fetch(signedUrl)
+      .then(resp => resp.blob())
+      .then(blob => zip.file('imagesForAnnotation/' + imageName, blob))
+      .catch(() => alert('Error downloading ' + imageName)));
+  });
+
+  await Promise.all(imageFetchPromises);
+  zip.generateAsync({ type: 'blob' }).then(async zipFile => {
+    var currentDate = new Date().getTime();
+    return saveAs(zipFile, `imagesForAnnotation_${currentDate}.zip`);
+  });
+}
+
 
 // Make and push JSON file specifying user-selected images
 function onSubmit() {
@@ -234,17 +280,17 @@ function onSubmit() {
   var pathAsArray = path.split('/');
 
   // Name of episode
-  var episode = pathAsArray.slice(1,-1).join('/') + '/';
+  var episode = pathAsArray.slice(1, -1).join('/') + '/';
   // The prefix can be concatenated with the episode name and image name to get an s3 location
   // This is included to help someone who may want to manually access the images
   var prefix = "s3://" + albumBucketName + '/' + pathAsArray.at(0) + '/';
 
-  var imageNames = Array.from(checkboxes).map(function(checkbox) {
+  var imageNames = Array.from(checkboxes).map(function (checkbox) {
     if (checkbox.checked) {
       var imageKeyArray = checkbox.id.slice(2).split('/');
       return imageKeyArray.at(-1);
     }
-  }).filter(function(element) {
+  }).filter(function (element) {
     if (element != null) {
       return element;
     }
@@ -260,7 +306,7 @@ function onSubmit() {
 }
 
 function uploadJsonToS3(episodeName, jsonObject) {
-  var jsonKey = 'vision-datasets/' + episodeName.slice(0,-1) + ".json";
+  var jsonKey = 'vision-datasets/' + episodeName.slice(0, -1) + ".json";
 
   // Use S3 ManagedUpload class as it supports multipart uploads
   var upload = new AWS.S3.ManagedUpload({
@@ -273,14 +319,14 @@ function uploadJsonToS3(episodeName, jsonObject) {
 
   var promise = upload.promise();
   promise.then(
-    function() {
+    function () {
       alert("Successfully uploaded JSON file.");
       window.location="photoviewer.html";
       // ** pass info to do this when the page reloads **
       // var button = document.getElementById("list_episodes");
       // button.click();   
     },
-    function(err) {
+    function (err) {
       return alert("There was an error uploading the JSON file: ", err.message);
     }
   );
