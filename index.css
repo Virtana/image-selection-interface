@@ -1,3 +1,22 @@
+ .card {
+  margin-top: 25%;
+  width: 50rem;
+  text-align: center;
+  background-color: #1f2837;
+  color: #e1052b ;
+  margin-left: auto;
+  margin-right: auto;
+  color: #CFD8DC  ;
+ }
+
+ .card-body {
+  color: #CFD8DC  ;
+  justify-content: center;
+  box-shadow: 0 15px 16px 0 rgba(0,0,0,0.2);
+  transition: 0.3s;
+  margin: auto;
+  width: 70%;
+ }
 
 body, html {
   height: 100%;
@@ -9,7 +28,7 @@ height: 100%;
 width: 100%;
 }
   
-.button {
+.basic_btn {
   background-color: red;
   border-radius: 50px;
   border: 2px;
@@ -110,5 +129,6 @@ text-decoration: none;
 transition-duration: .25s;
 }
 .menu__item:hover {
-background-color: #CFD8DC;
+background-color: #e1052b;
+color: #CFD8DC;
 }
