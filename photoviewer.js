@@ -163,21 +163,26 @@ function viewEpisode(episodeName) {
       '</ul>'
     ];
     var footerTemplate = [
-      '<div class="general_card" style="margin-bottom: 10rem">',
+      '<div class="general_card" style="margin-bottom: 100px">',
         '<h2>',
           'End of Episode: ' + episodeName,
         '</h2>',
-          '<button style="float: left;" class="basic_btn" onclick="listEpisodes()">',
-            '<i class="fa fa-long-arrow-left"></i> ',
-            ' Back To Episodes',
-          '</button>',
+        '<div>',
+          '<div>', 
+            '<button style="float: left;" class="basic_btn" onclick="listEpisodes()">',
+              '<i class="fa fa-long-arrow-left"></i> ',
+              ' Back To Episodes',
+            '</button>',
+          '</div>',
+          '<div>', 
           '<button style="float: right;" class="basic_btn" onclick="onSubmit()">',
           '<i class="fa fa-thumbs-up"></i> ',
             ' Submit new JSON',
           '</button>',
           '<br/>',
         '</div>',
-        '<br/>'
+      '</div>',
+      '<br/>'
     ];
     document.getElementById('header').innerHTML = getHtml(headerTemplate);
     document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
