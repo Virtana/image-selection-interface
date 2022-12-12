@@ -14,6 +14,8 @@
   color: #CFD8DC  ;
   justify-content: center;
   margin: auto;
+  padding-top: 20px;
+  padding-bottom: 20px;
 }
 
 body, html {
