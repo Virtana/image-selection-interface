@@ -228,6 +228,8 @@ font-size: 16px;
     color: #CFD8DC  ;
     justify-content: center;
     margin: auto;
+    padding-top: 20px;
+    padding-bottom: 20px;
  }
 
 .general_card {
@@ -236,9 +238,7 @@ font-size: 16px;
     color: #CFD8DC ;
     box-shadow: 0 15px 16px 0 rgba(0,0,0,0.2);
     padding: 2%;
-    margin: 5%
-    /* margin-left: auto;
-    margin-right: auto; */
+    margin: 5%;
 }
 
 .general_card_body {
@@ -251,4 +251,3 @@ font-size: 16px;
    margin: auto;
    width: 50%;
 }
- 
