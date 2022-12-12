@@ -34,7 +34,7 @@ function jsonKeyToEpisodeName(key) {
   keyArray = keyArray.slice(1, keyArray.length);
   return keyArray.join('/');
 }
- 
+
 function addSections() {
   var headerDiv = document.createElement('div');
   var viewerDiv = document.createElement('div');
@@ -50,7 +50,7 @@ function addSections() {
 function toogleHeaderSections(view) {
   document.getElementById("header_card").style.display = view;
 }
- 
+
 // List the episodes that exist in the bucket
 function listEpisodes() {
   // add div sections for gallery viewing
@@ -60,7 +60,7 @@ function listEpisodes() {
 
   // txt.style.textAlign = "center";
 
-  s3.listObjects(function(err, data) {
+  s3.listObjects(function (err, data) {
     if (err) {
       alert('There was an error accessing bucket: ' + err.message);
       window.location = "index.html";
@@ -93,30 +93,30 @@ function listEpisodes() {
         // Button to view the images from an episode
         var htmlElements = [
           '<li>',
-            '<button class="basic_btn" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
-              episodeName,
-            '</button>'
+          '<button class="basic_btn" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
+          episodeName,
+          '</button>'
         ];
         // If the json file already exists, add a button to download the images specified by the file
         if (jsonKey != '') {
           htmlElements.push('<button class="download_button" style="margin:5px;" onclick="downloadImages(\'' + jsonKey + '\')">',
-                            '<i class="fa fa-folder"></i> ',
-                            " Download Selected Images",
-                            '</button>')
+            '<i class="fa fa-folder"></i> ',
+            " Download Selected Images",
+            '</button>')
         }
         htmlElements.push('</li>');
         episodesHtml.push(getHtml(htmlElements));
       });
 
       var message = episodesHtml.length ?
-          '<p>Click on an episode to view images.</p>' : '<p>No episodes could be found.';
+        '<p>Click on an episode to view images.</p>' : '<p>No episodes could be found.';
       var htmlTemplate = [
         '<div class="general_card">',
-          '<h2>Episodes</h2>',
-          message,
-          '<ul>',
-            getHtml(episodesHtml),
-          '</ul>',
+        '<h2>Episodes</h2>',
+        message,
+        '<ul>',
+        getHtml(episodesHtml),
+        '</ul>',
         '</div>'
       ];
 
@@ -133,7 +133,7 @@ function listEpisodes() {
       document.getElementById('viewer').innerHTML = footerTemplate;
       document.getElementById('footer').innerHTML = "";
     }
-  });  
+  });
   toogleHeaderSections("block");
 }
 
@@ -157,14 +157,14 @@ function viewEpisode(episodeName) {
       '<p>No images found</p>';
     var headerTemplate = [
       '<div class="general_card">',
-        '<button class="basic_btn" onclick="listEpisodes()">',
-          '<i class="fa fa-long-arrow-left"></i> ',
-          'Back To Episodes',
-        '</button>',
-        '<h2>',
-          'Episode: ' + episodeName,
-        '</h2>',
-        message,
+      '<button class="basic_btn" onclick="listEpisodes()">',
+      '<i class="fa fa-long-arrow-left"></i> ',
+      'Back To Episodes',
+      '</button>',
+      '<h2>',
+      'Episode: ' + episodeName,
+      '</h2>',
+      message,
       '</div>'
     ];
     var htmlTemplate = [
@@ -197,7 +197,7 @@ function viewEpisode(episodeName) {
     document.getElementById('header').innerHTML = getHtml(headerTemplate);
     document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
     document.getElementById('footer').innerHTML = getHtml(footerTemplate);
-  });  
+  });
   toogleHeaderSections("none");
 }
 
@@ -236,9 +236,7 @@ function downloadImages(jsonKey) {
 async function downloadAllImages(jsonKeys) {
   jsonKeys = jsonKeys.split(',').filter(key => key != "");
 
-  var signedJsonUrls = jsonKeys.map(function (key) {
-    return s3.getSignedUrl('getObject', { Key: key })
-  });
+  var signedJsonUrls = jsonKeys.map((key) => s3.getSignedUrl('getObject', { Key: key }));
 
   var jsonFetchPromises = new Array();
   var imageNameToUrl = new Map();
@@ -266,12 +264,11 @@ async function downloadAllImages(jsonKeys) {
   });
 
   await Promise.all(imageFetchPromises);
-  zip.generateAsync({ type: 'blob' }).then(async zipFile => {
+  zip.generateAsync({ type: 'blob' }).then(zipFile => {
     var currentDate = new Date().getTime();
     return saveAs(zipFile, `imagesForAnnotation_${currentDate}.zip`);
   });
 }
-
 
 // Make and push JSON file specifying user-selected images
 function onSubmit() {
@@ -321,7 +318,7 @@ function uploadJsonToS3(episodeName, jsonObject) {
   promise.then(
     function () {
       alert("Successfully uploaded JSON file.");
-      window.location="photoviewer.html";
+      window.location = "photoviewer.html";
       // ** pass info to do this when the page reloads **
       // var button = document.getElementById("list_episodes");
       // button.click();   
