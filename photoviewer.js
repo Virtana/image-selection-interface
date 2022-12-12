@@ -45,12 +45,21 @@ function addSections() {
   document.getElementById("pv").appendChild(headerDiv);
   document.getElementById("pv").appendChild(viewerDiv);
   document.getElementById("pv").appendChild(footerDiv);
- }
+}
+
+function toogleHeaderSections(view) {
+  document.getElementById("header_card").style.display = view;
+}
  
 // List the episodes that exist in the bucket
 function listEpisodes() {
   // add div sections for gallery viewing
   addSections();
+
+  document.getElementById("header_card").style.margin = "auto";
+
+  // txt.style.textAlign = "center";
+
   s3.listObjects(function(err, data) {
     if (err) {
       alert('There was an error accessing bucket: ' + err.message);
@@ -91,7 +100,8 @@ function listEpisodes() {
         // If the json file already exists, add a button to download the images specified by the file
         if (jsonKey != '') {
           htmlElements.push('<button class="download_button" style="margin:5px;" onclick="downloadImages(\'' + jsonKey + '\')">',
-                            "Download Selected Images",
+                            '<i class="fa fa-folder"></i> ',
+                            " Download Selected Images",
                             '</button>')
         }
         htmlElements.push('</li>');
@@ -113,7 +123,8 @@ function listEpisodes() {
       document.getElementById('viewer').innerHTML = "";
       document.getElementById('footer').innerHTML = "";
     }
-  });
+  });  
+  toogleHeaderSections("block");
 }
 
 // Display the images in a given episode
@@ -132,11 +143,12 @@ function viewEpisode(episodeName) {
       ]);
     });
     var message = imagesHtml.length ?
-      '<p>We found ' + imagesHtml.length + ' images: </p>' :
-      '<p>No images found. This is likely an error.</p>';
+      '<p>' + imagesHtml.length + ' images found </p>' :
+      '<p>No images found</p>';
     var headerTemplate = [
       '<div class="general_card">',
         '<button class="basic_btn" onclick="listEpisodes()">',
+          '<i class="fa fa-long-arrow-left"></i> ',
           'Back To Episodes',
         '</button>',
         '<h2>',
@@ -151,24 +163,29 @@ function viewEpisode(episodeName) {
       '</ul>'
     ];
     var footerTemplate = [
-      '<div class="general_card">',
-      '<h2>',
-        'End of Episode: ' + episodeName,
-        '<button class="basic_btn" onclick="onSubmit()">',
-          'Submit selected images. This will push a JSON file to the bucket specifying the chosen images.' +
-          'This will replace any selection that may already exist.',
-        '</button>',
-      '</h2>',
-        '<button class="basic_btn" onclick="listEpisodes()">',
-          'Back To Episodes',
-        '</button>',
-      '</div>'
+      '<div class="general_card" style="margin-bottom: 10rem">',
+        '<h2>',
+          'End of Episode: ' + episodeName,
+        '</h2>',
+          '<button style="float: left;" class="basic_btn" onclick="listEpisodes()">',
+            '<i class="fa fa-long-arrow-left"></i> ',
+            ' Back To Episodes',
+          '</button>',
+          '<button style="float: right;" class="basic_btn" onclick="onSubmit()">',
+          '<i class="fa fa-thumbs-up"></i> ',
+            ' Submit new JSON',
+          '</button>',
+          '<br/>',
+        '</div>',
+        '<br/>'
     ];
     document.getElementById('header').innerHTML = getHtml(headerTemplate);
     document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
     document.getElementById('footer').innerHTML = getHtml(footerTemplate);
-  });
+  });  
+  toogleHeaderSections("none");
 }
+
 // Download images from the bucket specified by an existing JSON file for the episode
 function downloadImages(jsonKey) {
   
