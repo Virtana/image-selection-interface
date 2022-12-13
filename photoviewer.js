@@ -1,5 +1,5 @@
 // Constants
-const albumBucketName = 'virtana-datasets-testing';
+const albumBucketName = 'virtana-flight-datasets';
 
 // Set region
 AWS.config.region = 'us-east-2';
