@@ -174,23 +174,23 @@ function viewEpisode(episodeName) {
     ];
     var footerTemplate = [
       '<div class="general_card" style="margin-bottom: 100px">',
-        '<h2>',
-          'End of Episode: ' + episodeName,
-        '</h2>',
-        '<div>',
-          '<div>', 
-            '<button style="float: left;" class="basic_btn" onclick="listEpisodes()">',
-              '<i class="fa fa-long-arrow-left"></i> ',
-              ' Back To Episodes',
-            '</button>',
-          '</div>',
-          '<div>', 
-          '<button style="float: right;" class="basic_btn" onclick="onSubmit()">',
-          '<i class="fa fa-thumbs-up"></i> ',
-            ' Submit new JSON',
-          '</button>',
-          '<br/>',
-        '</div>',
+      '<h2>',
+      'End of Episode: ' + episodeName,
+      '</h2>',
+      '<div>',
+      '<div>',
+      '<button style="float: left;" class="basic_btn" onclick="listEpisodes()">',
+      '<i class="fa fa-long-arrow-left"></i> ',
+      ' Back To Episodes',
+      '</button>',
+      '</div>',
+      '<div>',
+      '<button style="float: right;" class="basic_btn" onclick="onSubmit()">',
+      '<i class="fa fa-thumbs-up"></i> ',
+      ' Submit new JSON',
+      '</button>',
+      '<br/>',
+      '</div>',
       '</div>',
       '<br/>'
     ];
@@ -315,16 +315,13 @@ function uploadJsonToS3(episodeName, jsonObject) {
   });
 
   var promise = upload.promise();
-  promise.then(
-    function () {
-      alert("Successfully uploaded JSON file.");
-      window.location = "photoviewer.html";
-      // ** pass info to do this when the page reloads **
-      // var button = document.getElementById("list_episodes");
-      // button.click();   
-    },
-    function (err) {
-      return alert("There was an error uploading the JSON file: ", err.message);
-    }
+  promise.then(() => {
+    alert("Successfully uploaded JSON file.");
+    window.location = "photoviewer.html";
+    // ** pass info to do this when the page reloads **
+    // var button = document.getElementById("list_episodes");
+    // button.click();   
+  },
+    (err) => { alert("There was an error uploading the JSON file: " + err.message) }
   );
 }
