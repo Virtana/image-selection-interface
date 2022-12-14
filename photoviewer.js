@@ -36,10 +36,14 @@ function jsonKeyToEpisodeName(key) {
 }
 function thumbnailKeyToImageKey(thumbnailKey) {
   var keyArray = thumbnailKey.split('/');
-  var imageName = keyArray.pop().slice(0,-4);
-  keyArray = keyArray.slice(0,-1);
+  var imageName = keyArray.pop().slice(0, -4);
+  keyArray = keyArray.slice(0, -1);
   keyArray.push(imageName + '.png');
   return keyArray.join('/');
+}
+
+function episodeNameToImageInfoKey(episodeName) {
+  return 'vision-datasets/' + episodeName + '_images/image_info.json'
 }
 
 function addSections() {
@@ -147,7 +151,7 @@ function listEpisodes() {
 // Display the images in a given episode
 function viewEpisode(episodeName) {
   var thumbnailFolderKey = 'vision-datasets/' + episodeName + '_images/thumbnails/';
-  s3.listObjects({ Prefix: thumbnailFolderKey }, function (err, data) {
+  s3.listObjects({ Prefix: thumbnailFolderKey }, async function (err, data) {
     if (err) {
       return alert('There was an error viewing your album: ' + err.message);
     }
@@ -201,9 +205,23 @@ function viewEpisode(episodeName) {
       '</div>',
       '<br/>'
     ];
+
+    var imageInfoKey = episodeNameToImageInfoKey(episodeName);
+    var imageInfoUrl = s3.getSignedUrl('getObject', { Key: imageInfoKey });
+    var ratio;
+    await fetch(imageInfoUrl)
+      .then((response) => response.json())
+      .then(function (jsonObject) {
+         ratio = jsonObject["resolution"]["width"] + '/' + jsonObject["resolution"]["height"];
+      });
+
     document.getElementById('header').innerHTML = getHtml(headerTemplate);
     document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
     document.getElementById('footer').innerHTML = getHtml(footerTemplate);
+
+    Array.from(document.getElementsByTagName('img')).forEach((img) => {
+      img.style.aspectRatio = ratio;
+    })
   });
   toogleHeaderSections("none");
 }
@@ -252,7 +270,7 @@ async function downloadAllImages(jsonKeys) {
       .then((response) => response.json())
       .then(function (jsonObject) {
         jsonObject["ImagesForAnnotation"].forEach(function (imageName) {
-        var imageKey = jsonObject["s3Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + '_images/' + imageName;
+          var imageKey = jsonObject["s3Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + '_images/' + imageName;
           var signedImageUrl = s3.getSignedUrl('getObject', { Key: imageKey });
           return imageNameToUrl.set(imageName, signedImageUrl);
         });

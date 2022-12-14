@@ -129,8 +129,8 @@ transform: scale(0);
 }
 
 .gallery_obj_selection img {
-height: 200px;
-width: 200px;
+width: 400px;
+aspect-ratio: 2208/1242;
 transition-duration: 0.2s;
 transform-origin: 50% 50%;
 }
