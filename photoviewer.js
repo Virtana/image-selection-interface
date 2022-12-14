@@ -1,5 +1,5 @@
 // Constants
-const albumBucketName = 'virtana-flight-datasets';
+const albumBucketName = 'virtana-datasets-testing';
 
 // Set region
 AWS.config.region = 'us-east-2';
@@ -22,16 +22,23 @@ function setCredentials() {
   });
 }
 
-// Get name of the episode from different file keys
+// Converting keys to other formats
 function imageKeyToEpisodeName(key) {
   var keyArray = key.split('/');
-  keyArray = keyArray.slice(1, -1);
-  return keyArray.join('/');
+  var imageFolder = keyArray.slice(1, -1).join('/');
+  return imageFolder.slice(0, -7);
 }
 function jsonKeyToEpisodeName(key) {
   key = key.slice(0, -5);
   var keyArray = key.split('/');
   keyArray = keyArray.slice(1, keyArray.length);
+  return keyArray.join('/');
+}
+function thumbnailKeyToImageKey(thumbnailKey) {
+  var keyArray = thumbnailKey.split('/');
+  imageName = keyArray.pop().slice(0,4)
+  keyArray = keyArray.slice(0,-1);
+  keyArray.push(imageName + '.png');
   return keyArray.join('/');
 }
 
@@ -139,16 +146,16 @@ function listEpisodes() {
 
 // Display the images in a given episode
 function viewEpisode(episodeName) {
-  var episodeImageFolderKey = 'vision-datasets/' + episodeName + '/';
-  s3.listObjects({ Prefix: episodeImageFolderKey }, function (err, data) {
+  var thumbnailFolderKey = 'vision-datasets/' + episodeName + '_images/thumbnails/';
+  s3.listObjects({ Prefix: thumbnailFolderKey }, function (err, data) {
     if (err) {
       return alert('There was an error viewing your album: ' + err.message);
     }
-    var imagesHtml = data.Contents.map(function (imageObject) {
-      var signedImageUrl = s3.getSignedUrl('getObject', { Key: imageObject.Key });
+    var imagesHtml = data.Contents.map(function (thumbnailObject) {
+      var signedThumbnailUrl = s3.getSignedUrl('getObject', { Key: thumbnailObject.Key });
       return getHtml([
-        '<li class="gallery_list_obj"><input type="checkbox" id="cb' + imageObject.Key + '" />',
-        '<label class="gallery_obj_selection" for="cb' + imageObject.Key + '"><img src="' + signedImageUrl + '" /></label>',
+        '<li class="gallery_list_obj"><input type="checkbox" id="cb' + thumbnailKeyToImageKey(thumbnailObject.Key) + '" />',
+        '<label class="gallery_obj_selection" for="cb' + thumbnailKeyToImageKey(thumbnailObject.Key) + '"><img src="' + signedThumbnailUrl + '" /></label>',
         '</li>'
       ]);
     });
@@ -273,14 +280,13 @@ async function downloadAllImages(jsonKeys) {
 // Make and push JSON file specifying user-selected images
 function onSubmit() {
   var checkboxes = document.getElementsByTagName('input');
-  var path = checkboxes[1].id.slice(2);
-  var pathAsArray = path.split('/');
+  var imageKey = checkboxes[1].id.slice(2);
 
   // Name of episode
-  var episode = pathAsArray.slice(1, -1).join('/') + '/';
+  var episode = imageKeyToEpisodeName(imageKey);
   // The prefix can be concatenated with the episode name and image name to get an s3 location
   // This is included to help someone who may want to manually access the images
-  var prefix = "s3://" + albumBucketName + '/' + pathAsArray.at(0) + '/';
+  var prefix = "s3://" + albumBucketName + '/vision-datasets/';
 
   var imageNames = Array.from(checkboxes).map(function (checkbox) {
     if (checkbox.checked) {
