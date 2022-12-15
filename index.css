@@ -29,10 +29,10 @@ width: 100%;
 }
   
 .basic_btn {
-  background-color: red;
+  background-color: white;
   border-radius: 50px;
   border: 2px;
-  color: whitesmoke;
+  color: #1f2837;
   padding: 15px 32px;
   text-align: center;
   text-decoration: none;
@@ -41,8 +41,8 @@ width: 100%;
   }
 
 .bg {
-  background-image: url("background2.jpg");
-  height: 100%; 
+  /* background-image: url("background2.jpg");
+  height: 100%;  */
   color: whitesmoke;
   
   /* Center and scale the image nicely */

@@ -156,12 +156,12 @@ margin: 0;
 }
 
 .bg {
-background-image: url("background2.jpg");
-height: 100%; 
+/* background-image: url("background2.jpg"); */
+/* height: 100%;  */
 color: whitesmoke;
-background-position: center;
+/* background-position: center;
 background-repeat: no-repeat;
-background-size: cover;
+background-size: cover; */
 }
 
 img {
@@ -175,10 +175,10 @@ width: 100%;
  }
 
 .basic_btn {
-background-color: red;
+background-color: white;
 border-radius: 50px;
 border: 2px;
-color: whitesmoke;
+color: #1f2837;
 padding: 15px 32px;
 text-align: center;
 text-decoration: none;
@@ -187,9 +187,9 @@ font-size: 16px;
 }
 
 .download_button {
-  background-color: red;
+  background-color: white;
   border: 2px;
-  color: whitesmoke;
+  color: #1f2837;
   padding: 15px 32px;
   text-align: center;
   text-decoration: none;
