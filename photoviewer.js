@@ -28,18 +28,21 @@ function imageKeyToEpisodeName(key) {
   var imageFolder = keyArray.slice(1, -1).join('/');
   return imageFolder.slice(0, -7);
 }
-function jsonKeyToEpisodeName(key) {
-  key = key.slice(0, -5);
+function jsonSummaryKeyToEpisodeName(key) {
+  key = key.slice(0, -("_images_for_annotation.json".length));
   var keyArray = key.split('/');
   keyArray = keyArray.slice(1, keyArray.length);
   return keyArray.join('/');
 }
 function thumbnailKeyToImageKey(thumbnailKey) {
   var keyArray = thumbnailKey.split('/');
-  var imageName = keyArray.pop().slice(0,-4);
-  keyArray = keyArray.slice(0,-1);
+  var imageName = keyArray.pop().slice(0, -4);
+  keyArray = keyArray.slice(0, -1);
   keyArray.push(imageName + '.png');
   return keyArray.join('/');
+}
+function jsonSummaryObjectToImageKey(jsonObject, imageName) {
+  return jsonObject["ImageKeyPrefix"] + imageName;
 }
 
 function addSections() {
@@ -72,31 +75,31 @@ function listEpisodes() {
       alert('There was an error accessing bucket: ' + err.message);
       window.location = "index.html";
     } else {
-      // Map episodes to their accompanying json file
-      // The json file means the episode has already been down-selected from, it contains names of the images chosen for annotation
-      var episodeToJsonFile = new Map();
+      // Map episodes to the key of their accompanying json summary file
+      // The json summary means the episode has already been down-selected from, it contains names of the images chosen for annotation
+      var episodeToJsonSummaryKey = new Map();
 
       // Go through all images to determine what episodes have images in the bucket that we can down-select from
-      // We initialize all episodes' accompanying json file in the map as non-existent
+      // We initialize all episodes' accompanying json summary in the map as non-existent
       data.Contents.forEach(function (bucketObject) {
         var key = bucketObject.Key;
         if (key.endsWith('.png')) {
-          episodeToJsonFile.set(imageKeyToEpisodeName(key), '');
+          episodeToJsonSummaryKey.set(imageKeyToEpisodeName(key), '');
         }
       })
 
-      // Find all json files and update map to reflect that they exist for the appropriate episode
+      // Find all json summaries and update map to reflect that they exist for the appropriate episode
       data.Contents.forEach(function (bucketObject) {
         var key = bucketObject.Key;
-        if (key.endsWith('.json') && !key.includes('image_info')) {
-          episodeToJsonFile.set(jsonKeyToEpisodeName(key), key);
+        if (key.includes('images_for_annotation.json')) {
+          episodeToJsonSummaryKey.set(jsonSummaryKeyToEpisodeName(key), key);
         }
       })
 
       // Array to store the HTML elements that will represent each available episode
       var episodesHtml = new Array();
 
-      episodeToJsonFile.forEach(function (jsonKey, episodeName) {
+      episodeToJsonSummaryKey.forEach(function (jsonKey, episodeName) {
         // Button to view the images from an episode
         var htmlElements = [
           '<li>',
@@ -104,7 +107,7 @@ function listEpisodes() {
           episodeName,
           '</button>'
         ];
-        // If the json file already exists, add a button to download the images specified by the file
+        // If the json summary already exists, add a button to download the images specified by it
         if (jsonKey != '') {
           htmlElements.push('<button class="download_button" style="margin:5px;" onclick="downloadImages(\'' + jsonKey + '\')">',
             '<i class="fa fa-folder"></i> ',
@@ -127,7 +130,7 @@ function listEpisodes() {
         '</div>'
       ];
 
-      var jsonKeys = Array.from(episodeToJsonFile.values()).filter(key => key != "");
+      var jsonKeys = Array.from(episodeToJsonSummaryKey.values()).filter(key => key != "");
       var footerTemplate = jsonKeys.length ?
         getHtml([
           '<button class="download_button" onclick="downloadAllImages(\'' + jsonKeys + '\')">',
@@ -194,7 +197,7 @@ function viewEpisode(episodeName) {
       '<div>',
       '<button style="float: right;" class="basic_btn" onclick="onSubmit()">',
       '<i class="fa fa-thumbs-up"></i> ',
-      ' Submit new JSON',
+      ' Submit new JSON summary',
       '</button>',
       '<br/>',
       '</div>',
@@ -208,18 +211,17 @@ function viewEpisode(episodeName) {
   toogleHeaderSections("none");
 }
 
-// Download images from the bucket specified by an existing JSON file for the episode
-function downloadImages(jsonKey) {
+// Download images from the bucket specified by an existing JSON summary file for the episode
+function downloadImages(jsonSummaryKey) {
 
-  var signedJsonUrl = s3.getSignedUrl('getObject', { Key: jsonKey });
-
+  var signedJsonUrl = s3.getSignedUrl('getObject', { Key: jsonSummaryKey });
   fetch(signedJsonUrl)
     .then((response) => response.json())
     .then(function (jsonObject) {
       var imageNameToUrl = new Map();
       // Iterate over image names and get pre-signed URLs for each that we can use to download from
       jsonObject["ImagesForAnnotation"].forEach(function (imageName) {
-        var imageKey = jsonObject["s3Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + '_images/' + imageName;
+        var imageKey = jsonSummaryObjectToImageKey(jsonObject, imageName);
         var signedImageUrl = s3.getSignedUrl('getObject', { Key: imageKey });
         return imageNameToUrl.set(imageName, signedImageUrl);
       });
@@ -240,11 +242,10 @@ function downloadImages(jsonKey) {
     });
 }
 
-async function downloadAllImages(jsonKeys) {
-  jsonKeys = jsonKeys.split(',').filter(key => key != "");
+async function downloadAllImages(jsonSummaryKeys) {
+  jsonSummaryKeys = jsonSummaryKeys.split(',').filter(key => key != "");
 
-  var signedJsonUrls = jsonKeys.map((key) => s3.getSignedUrl('getObject', { Key: key }));
-
+  var signedJsonUrls = jsonSummaryKeys.map((key) => s3.getSignedUrl('getObject', { Key: key }));
   var jsonFetchPromises = new Array();
   var imageNameToUrl = new Map();
   signedJsonUrls.forEach(function (jsonUrl) {
@@ -252,7 +253,7 @@ async function downloadAllImages(jsonKeys) {
       .then((response) => response.json())
       .then(function (jsonObject) {
         jsonObject["ImagesForAnnotation"].forEach(function (imageName) {
-        var imageKey = jsonObject["s3Prefix"].slice(5 + albumBucketName.length + 1) + jsonObject["EpisodeName"] + '_images/' + imageName;
+          var imageKey = jsonSummaryObjectToImageKey(jsonObject, imageName);
           var signedImageUrl = s3.getSignedUrl('getObject', { Key: imageKey });
           return imageNameToUrl.set(imageName, signedImageUrl);
         });
@@ -277,15 +278,21 @@ async function downloadAllImages(jsonKeys) {
   });
 }
 
-// Make and push JSON file specifying user-selected images
+// Make and push JSON summary file specifying user-selected images
 function onSubmit() {
   var checkboxes = document.getElementsByTagName('input');
 
-  // Name of episode, grabbed from any of the checkboxes except [0], it doesn't matter
-  var episode = imageKeyToEpisodeName(checkboxes[1].id.slice(2));
-  // The prefix can be concatenated with the episode name and image name to get an s3 location
-  // This is included to help someone who may want to manually access the images
-  var prefix = "s3://" + albumBucketName + '/vision-datasets/';
+  // Image key, grabbed from any of the checkboxes except [0], it doesn't matter
+  var imageKey = checkboxes[1].id.slice(2)
+  // Last part of episode name, short identifier for the episode
+  var episode = imageKeyToEpisodeName(imageKey).split('/').at(-1);
+  // The s3Prefix can be concatenated with the imageKeyPrefix and the image name to get the image's s3 URI
+  // OR the imageKeyPrefix can be concatenated with the image name to get the image's full key
+  // These are included to help someone who may want to manually access the images, or write a script that does so
+  var s3Prefix = "s3://" + albumBucketName + '/';
+  var imageKeyArray = imageKey.split('/');
+  imageKeyArray.splice(-1);
+  var imageKeyPrefix = imageKeyArray.join('/') + '/';
 
   var imageNames = Array.from(checkboxes).map(function (checkbox) {
     if (checkbox.checked) {
@@ -299,16 +306,16 @@ function onSubmit() {
   });
 
   var jsonContent = {
-    "s3Prefix": prefix,
-    "EpisodeName": episode,
-    "ImagesForAnnotation": imageNames
+    "s3Prefix": s3Prefix,
+    "ImageKeyPrefix": imageKeyPrefix,
+    "ImagesForAnnotation": imageNames,
+    "Episode": episode,
   };
-
-  uploadJsonToS3(episode, jsonContent);
+  uploadJsonSummaryToS3(jsonContent);
 }
 
-function uploadJsonToS3(episodeName, jsonObject) {
-  var jsonKey = 'vision-datasets/' + episodeName + ".json";
+function uploadJsonSummaryToS3(jsonObject) {
+  var jsonKey = jsonObject["ImageKeyPrefix"].slice(0, -1) + '_for_annotation.json'
 
   // Use S3 ManagedUpload class as it supports multipart uploads
   var upload = new AWS.S3.ManagedUpload({
@@ -321,12 +328,12 @@ function uploadJsonToS3(episodeName, jsonObject) {
 
   var promise = upload.promise();
   promise.then(() => {
-    alert("Successfully uploaded JSON file.");
+    alert("Successfully uploaded JSON summary file.");
     window.location = "photoviewer.html";
     // ** pass info to do this when the page reloads **
     // var button = document.getElementById("list_episodes");
     // button.click();   
   },
-    (err) => { alert("There was an error uploading the JSON file: " + err.message) }
+    (err) => { alert("There was an error uploading the JSON summary file: " + err.message) }
   );
 }
