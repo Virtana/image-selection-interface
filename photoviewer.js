@@ -65,8 +65,6 @@ function listEpisodes() {
 
   document.getElementById("header_card").style.margin = "auto";
 
-  // txt.style.textAlign = "center";
-
   s3.listObjects(function (err, data) {
     if (err) {
       alert('There was an error accessing bucket: ' + err.message);
@@ -131,7 +129,8 @@ function listEpisodes() {
       var footerTemplate = jsonKeys.length ?
         getHtml([
           '<button class="download_button" onclick="downloadAllImages(\'' + jsonKeys + '\')">',
-          'Download selected images from all episodes',
+          '<i class="fa fa-folder"></i>', 
+          '  Download selected images from all episodes',
           '</button>',
         ]) :
         "No episodes have been down-selected yet";
