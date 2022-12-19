@@ -190,13 +190,23 @@ function viewEpisode(episodeName) {
       '<h2>',
       'End of Episode: ' + episodeName,
       '</h2>',
+
       '<div>',
+
       '<div>',
       '<button style="float: left;" class="basic_btn" onclick="listEpisodes()">',
       '<i class="fa fa-long-arrow-left"></i> ',
       ' Back To Episodes',
       '</button>',
       '</div>',
+
+      '<div>',
+      '<button style="float: right; margin-left: 25px;" class="basic_btn" onclick="downloadSelected()">',
+      '<i class="fa fa-folder"></i>', 
+      ' Download Selected Images',
+      '</button>',
+      '</div>',
+
       '<div>',
       '<button style="float: right;" class="basic_btn" onclick="onSubmit()">',
       '<i class="fa fa-thumbs-up"></i> ',
@@ -204,6 +214,7 @@ function viewEpisode(episodeName) {
       '</button>',
       '<br/>',
       '</div>',
+
       '</div>',
       '<br/>'
     ];
@@ -292,6 +303,45 @@ async function downloadAllImages(jsonSummaryKeys) {
   zip.generateAsync({ type: 'blob' }).then(zipFile => {
     var currentDate = new Date().getTime();
     return saveAs(zipFile, `imagesForAnnotation_${currentDate}.zip`);
+  });
+}
+
+// Download user-selected images
+function downloadSelected() {
+  var checkboxes = document.getElementsByTagName('input');
+  var s3Prefix = "s3://" + albumBucketName + '/';
+
+  var imageKeys = Array.from(checkboxes).map(function (checkbox) {
+    if (checkbox.checked) {
+      var imageKeyArray = checkbox.id.slice(2); 
+      return imageKeyArray;
+    }
+  }).filter(function (element) {
+    if (element != null) {
+      return element;
+    }
+  });
+
+  var imageSignedURLs = new Map();
+  var promises = new Array();
+  var zip = JSZip();
+
+  imageKeys.forEach(function (imageURL) {
+    var signedImageUrl = s3.getSignedUrl('getObject', {Key: imageURL});
+    imageName = imageURL.split('/').at(-1);
+    return imageSignedURLs.set(imageName, signedImageUrl);
+  });
+  imageSignedURLs.forEach(function (signedUrl, imageName) {
+    promises.push(fetch(signedUrl)
+      .then(resp => resp.blob())
+      .then(blob => zip.file(imageName, blob))
+      .catch(() => alert('Error downloading ' + imageName)));
+  });
+  Promise.all(promises).then(() => { ////
+    zip.generateAsync({ type: 'blob' }).then(function (zipFile) {
+      var currentDate = new Date().getTime();
+      return saveAs(zipFile, `tempSessionSelection_${currentDate}.zip`);
+    });
   });
 }
 
