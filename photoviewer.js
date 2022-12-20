@@ -61,7 +61,7 @@ function addSections() {
   document.getElementById("pv").appendChild(footerDiv);
 }
 
-function toogleHeaderSections(view) {
+function toggleHeaderSections(view) {
   document.getElementById("header_card").style.display = view;
 }
 
@@ -147,7 +147,7 @@ function listEpisodes() {
       document.getElementById('footer').innerHTML = "";
     }
   });
-  toogleHeaderSections("block");
+  toggleHeaderSections("block");
 }
 
 // Display the images in a given episode
@@ -236,7 +236,7 @@ function viewEpisode(episodeName) {
       img.style.aspectRatio = ratio;
     })
   });
-  toogleHeaderSections("none");
+  toggleHeaderSections("none");
 }
 
 // Download images from the bucket specified by an existing JSON summary file for the episode
@@ -322,27 +322,32 @@ function downloadSelected() {
     }
   });
 
-  var imageSignedURLs = new Map();
-  var promises = new Array();
-  var zip = JSZip();
+  if (imageKeys.length != 0){
+    var imageSignedURLs = new Map();
+    var promises = new Array(); 
+    var zip = JSZip();
 
-  imageKeys.forEach(function (imageURL) {
-    var signedImageUrl = s3.getSignedUrl('getObject', {Key: imageURL});
-    imageName = imageURL.split('/').at(-1);
-    return imageSignedURLs.set(imageName, signedImageUrl);
-  });
-  imageSignedURLs.forEach(function (signedUrl, imageName) {
-    promises.push(fetch(signedUrl)
-      .then(resp => resp.blob())
-      .then(blob => zip.file(imageName, blob))
-      .catch(() => alert('Error downloading ' + imageName)));
-  });
-  Promise.all(promises).then(() => { ////
-    zip.generateAsync({ type: 'blob' }).then(function (zipFile) {
-      var currentDate = new Date().getTime();
-      return saveAs(zipFile, `tempSessionSelection_${currentDate}.zip`);
+    imageKeys.forEach(function (imageURL) {
+      var signedImageUrl = s3.getSignedUrl('getObject', {Key: imageURL});
+      imageName = imageURL.split('/').at(-1);
+      return imageSignedURLs.set(imageName, signedImageUrl);
     });
-  });
+    imageSignedURLs.forEach(function (signedUrl, imageName) {
+      promises.push(fetch(signedUrl)
+        .then(resp => resp.blob())
+        .then(blob => zip.file(imageName, blob))
+        .catch(() => alert('Error downloading ' + imageName)));
+    });
+    Promise.all(promises).then(() => { ////
+      zip.generateAsync({ type: 'blob' }).then(function (zipFile) {
+        var currentDate = new Date().getTime();
+        return saveAs(zipFile, `tempSessionSelection_${currentDate}.zip`);
+      });
+    });
+  }
+  else {
+    alert('No images selected to download!');
+  }
 }
 
 // Make and push JSON summary file specifying user-selected images
@@ -372,13 +377,18 @@ function onSubmit() {
     }
   });
 
-  var jsonContent = {
-    "s3Prefix": s3Prefix,
-    "ImageKeyPrefix": imageKeyPrefix,
-    "ImagesForAnnotation": imageNames,
-    "Episode": episode,
-  };
-  uploadJsonSummaryToS3(jsonContent);
+  if (imageNames.length != 0){
+    var jsonContent = {
+      "s3Prefix": s3Prefix,
+      "ImageKeyPrefix": imageKeyPrefix,
+      "ImagesForAnnotation": imageNames,
+      "Episode": episode,
+    };
+    uploadJsonSummaryToS3(jsonContent);
+  }
+  else {
+    alert('No images selected to submit as JSON!');
+  }
 }
 
 function uploadJsonSummaryToS3(jsonObject) {
