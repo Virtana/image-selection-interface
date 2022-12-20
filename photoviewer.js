@@ -1,5 +1,5 @@
 // Constants
-const albumBucketName = 'virtana-datasets-testing';
+const albumBucketName = 'virtana-flight-datasets';
 
 // Set region
 AWS.config.region = 'us-east-2';
@@ -61,93 +61,111 @@ function addSections() {
   document.getElementById("pv").appendChild(footerDiv);
 }
 
-function toogleHeaderSections(view) {
+function toggleHeaderSections(view) {
   document.getElementById("header_card").style.display = view;
 }
 
 // List the episodes that exist in the bucket
-function listEpisodes() {
+async function listEpisodes() {
   // add div sections for gallery viewing
   addSections();
 
   document.getElementById("header_card").style.margin = "auto";
 
-  s3.listObjects(function (err, data) {
-    if (err) {
-      alert('There was an error accessing bucket: ' + err.message);
-      window.location = "index.html";
-    } else {
-      // Map episodes to the key of their accompanying json summary file
-      // The json summary means the episode has already been down-selected from, it contains names of the images chosen for annotation
-      var episodeToJsonSummaryKey = new Map();
+  const bucketObjectKeys = await listAllObjects();
 
-      // Go through all images to determine what episodes have images in the bucket that we can down-select from
-      // We initialize all episodes' accompanying json summary in the map as non-existent
-      data.Contents.forEach(function (bucketObject) {
-        var key = bucketObject.Key;
-        if (key.endsWith('.png')) {
-          episodeToJsonSummaryKey.set(imageKeyToEpisodeName(key), '');
-        }
-      })
+  // Map episodes to the key of their accompanying json summary file
+  // The json summary means the episode has already been down-selected from, it contains names of the images chosen for annotation
+  var episodeToJsonSummaryKey = new Map();
 
-      // Find all json summaries and update map to reflect that they exist for the appropriate episode
-      data.Contents.forEach(function (bucketObject) {
-        var key = bucketObject.Key;
-        if (key.includes('images_for_annotation.json')) {
-          episodeToJsonSummaryKey.set(jsonSummaryKeyToEpisodeName(key), key);
-        }
-      })
-
-      // Array to store the HTML elements that will represent each available episode
-      var episodesHtml = new Array();
-
-      episodeToJsonSummaryKey.forEach(function (jsonKey, episodeName) {
-        // Button to view the images from an episode
-        var htmlElements = [
-          '<li>',
-          '<button class="basic_btn" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
-          episodeName,
-          '</button>'
-        ];
-        // If the json summary already exists, add a button to download the images specified by it
-        if (jsonKey != '') {
-          htmlElements.push('<button class="download_button" style="margin:5px;" onclick="downloadImages(\'' + jsonKey + '\')">',
-            '<i class="fa fa-folder"></i> ',
-            " Download Selected Images",
-            '</button>')
-        }
-        htmlElements.push('</li>');
-        episodesHtml.push(getHtml(htmlElements));
-      });
-
-      var message = episodesHtml.length ?
-        '<p>Click on an episode to view images.</p>' : '<p>No episodes could be found.';
-      var htmlTemplate = [
-        '<div class="general_card">',
-        '<h2>Episodes</h2>',
-        message,
-        '<ul>',
-        getHtml(episodesHtml),
-        '</ul>',
-        '</div>'
-      ];
-
-      var jsonKeys = Array.from(episodeToJsonSummaryKey.values()).filter(key => key != "");
-      var footerTemplate = jsonKeys.length ?
-        getHtml([
-          '<button class="download_button" onclick="downloadAllImages(\'' + jsonKeys + '\')">',
-          '<i class="fa fa-folder"></i>', 
-          '  Download selected images from all episodes',
-          '</button>',
-        ]) :
-        "No episodes have been down-selected yet";
-
-      document.getElementById('header').innerHTML = getHtml(htmlTemplate);
-      document.getElementById('viewer').innerHTML = footerTemplate;
-      document.getElementById('footer').innerHTML = "";
+  // Go through all images to determine what episodes have images in the bucket that we can down-select from
+  // We initialize all episodes' accompanying json summary in the map as non-existent
+  bucketObjectKeys.forEach(key => {
+    if (key.endsWith('.png')) {
+      episodeToJsonSummaryKey.set(imageKeyToEpisodeName(key), '');
     }
+  })
+
+  // Find all json summaries and update map to reflect that they exist for the appropriate episode
+  bucketObjectKeys.forEach(key => {
+    if (key.includes('images_for_annotation.json')) {
+      episodeToJsonSummaryKey.set(jsonSummaryKeyToEpisodeName(key), key);
+    }
+  })
+
+  // Array to store the HTML elements that will represent each available episode
+  var episodesHtml = new Array();
+
+  episodeToJsonSummaryKey.forEach(function (jsonKey, episodeName) {
+    // Button to view the images from an episode
+    var htmlElements = [
+      '<li>',
+      '<button class="basic_btn" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
+      episodeName,
+      '</button>'
+    ];
+    // If the json summary already exists, add a button to download the images specified by it
+    if (jsonKey != '') {
+      htmlElements.push('<button class="download_button" style="margin:5px;" onclick="downloadImages(\'' + jsonKey + '\')">',
+        '<i class="fa fa-folder"></i> ',
+        " Download Selected Images",
+        '</button>')
+    }
+    htmlElements.push('</li>');
+    episodesHtml.push(getHtml(htmlElements));
   });
-  toogleHeaderSections("block");
+
+  var message = episodesHtml.length ?
+    '<p>Click on an episode to view images.</p>' : '<p>No episodes could be found.';
+  var htmlTemplate = [
+    '<div class="general_card">',
+    '<h2>Episodes</h2>',
+    message,
+    '<ul>',
+    getHtml(episodesHtml),
+    '</ul>',
+    '</div>'
+  ];
+
+  var jsonKeys = Array.from(episodeToJsonSummaryKey.values()).filter(key => key != "");
+  var footerTemplate = jsonKeys.length ?
+    getHtml([
+      '<button class="download_button" onclick="downloadAllImages(\'' + jsonKeys + '\')">',
+      '<i class="fa fa-folder"></i>',
+      '  Download selected images from all episodes',
+      '</button>',
+    ]) :
+    "No episodes have been down-selected yet";
+
+  document.getElementById('header').innerHTML = getHtml(htmlTemplate);
+  document.getElementById('viewer').innerHTML = footerTemplate;
+  document.getElementById('footer').innerHTML = "";
+
+  toggleHeaderSections("block");
+}
+
+async function listAllObjects() {
+  var marker;
+  var truncated = true;
+  const elements = [];
+  while (truncated) {
+    if (marker) {
+      var params = { Marker: marker }
+    }
+    try {
+      response = await s3.listObjects(params).promise();
+      response.Contents.forEach(item => {
+        elements.push(item.Key);
+      });
+      truncated = response.IsTruncated;
+      if (truncated) {
+        marker = response.Contents.slice(-1)[0].Key;
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+  return elements;
 }
 
 // Display the images in a given episode
@@ -214,7 +232,7 @@ function viewEpisode(episodeName) {
     await fetch(imageInfoUrl)
       .then((response) => response.json())
       .then(function (jsonObject) {
-         ratio = jsonObject["resolution"]["width"] + '/' + jsonObject["resolution"]["height"];
+        ratio = jsonObject["resolution"]["width"] + '/' + jsonObject["resolution"]["height"];
       });
 
     document.getElementById('header').innerHTML = getHtml(headerTemplate);
@@ -225,7 +243,7 @@ function viewEpisode(episodeName) {
       img.style.aspectRatio = ratio;
     })
   });
-  toogleHeaderSections("none");
+  toggleHeaderSections("none");
 }
 
 // Download images from the bucket specified by an existing JSON summary file for the episode
