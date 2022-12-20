@@ -165,13 +165,11 @@ function clickCheckbox(){
   
   const button = document.getElementsByClassName('dynamic_btn');
   if (checkedArray.length != 0){
-    console.log(checkedArray.length)
     for (let i = 0; i < button.length; i++) {
       button[i].style.visibility = 'visible';
     }
   }
   else {
-    console.log(checkedArray.length)
     for (let i = 0; i < button.length; i++) {
       button[i].style.visibility = 'hidden';
     }
