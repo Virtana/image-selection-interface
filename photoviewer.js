@@ -150,6 +150,34 @@ function listEpisodes() {
   toggleHeaderSections("block");
 }
 
+function clickCheckbox(){
+  var checkboxes = document.getElementsByTagName('input');
+
+  var checkedArray = Array.from(checkboxes).map(function (checkbox) {
+    if (checkbox.checked) { 
+      return true;
+    }
+  }).filter(function (element) {
+    if (element != null) {
+      return element;
+    }
+  });
+  
+  const button = document.getElementsByClassName('dynamic_btn');
+  if (checkedArray.length != 0){
+    console.log(checkedArray.length)
+    for (let i = 0; i < button.length; i++) {
+      button[i].style.visibility = 'visible';
+    }
+  }
+  else {
+    console.log(checkedArray.length)
+    for (let i = 0; i < button.length; i++) {
+      button[i].style.visibility = 'hidden';
+    }
+  }
+}
+
 // Display the images in a given episode
 function viewEpisode(episodeName) {
   var thumbnailFolderKey = 'vision-datasets/' + episodeName + '_images/thumbnails/';
@@ -160,7 +188,7 @@ function viewEpisode(episodeName) {
     var imagesHtml = data.Contents.map(function (thumbnailObject) {
       var signedThumbnailUrl = s3.getSignedUrl('getObject', { Key: thumbnailObject.Key });
       return getHtml([
-        '<li class="gallery_list_obj"><input type="checkbox" id="cb' + thumbnailKeyToImageKey(thumbnailObject.Key) + '" />',
+        '<li class="gallery_list_obj"><input type="checkbox" onclick="clickCheckbox()" id="cb' + thumbnailKeyToImageKey(thumbnailObject.Key) + '" />',
         '<label class="gallery_obj_selection" for="cb' + thumbnailKeyToImageKey(thumbnailObject.Key) + '"><img src="' + signedThumbnailUrl + '" /></label>',
         '</li>'
       ]);
@@ -190,31 +218,26 @@ function viewEpisode(episodeName) {
       '<h2>',
       'End of Episode: ' + episodeName,
       '</h2>',
-
       '<div>',
-
       '<div>',
       '<button style="float: left;" class="basic_btn" onclick="listEpisodes()">',
       '<i class="fa fa-long-arrow-left"></i> ',
       ' Back To Episodes',
       '</button>',
       '</div>',
-
       '<div>',
-      '<button style="float: right; margin-left: 25px;" class="basic_btn" onclick="downloadSelected()">',
+      '<button style="float: right; margin-left: 25px;" class="dynamic_btn" onclick="downloadSelected()">',
       '<i class="fa fa-folder"></i>', 
       ' Download Selected Images',
       '</button>',
       '</div>',
-
       '<div>',
-      '<button style="float: right;" class="basic_btn" onclick="onSubmit()">',
+      '<button style="float: right;" class="dynamic_btn" onclick="onSubmit()">',
       '<i class="fa fa-thumbs-up"></i> ',
       ' Submit new JSON summary',
       '</button>',
       '<br/>',
       '</div>',
-
       '</div>',
       '<br/>'
     ];
@@ -306,7 +329,7 @@ async function downloadAllImages(jsonSummaryKeys) {
   });
 }
 
-// Download user-selected images
+// Download user-selected images per temporary episode session
 function downloadSelected() {
   var checkboxes = document.getElementsByTagName('input');
   var s3Prefix = "s3://" + albumBucketName + '/';
@@ -322,7 +345,7 @@ function downloadSelected() {
     }
   });
 
-  if (imageKeys.length != 0){
+  if (imageKeys.length != 0){ //this check is void with dynamic button
     var imageSignedURLs = new Map();
     var promises = new Array(); 
     var zip = JSZip();
@@ -377,7 +400,7 @@ function onSubmit() {
     }
   });
 
-  if (imageNames.length != 0){
+  if (imageNames.length != 0){ //this check is void with dynamic button
     var jsonContent = {
       "s3Prefix": s3Prefix,
       "ImageKeyPrefix": imageKeyPrefix,
