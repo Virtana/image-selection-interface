@@ -153,26 +153,16 @@ function listEpisodes() {
 function clickCheckbox(){
   var checkboxes = document.getElementsByTagName('input');
 
-  var checkedArray = Array.from(checkboxes).map(function (checkbox) {
+  var cbChecked = false;
+  Array.from(checkboxes).forEach(function(checkbox){
     if (checkbox.checked) { 
-      return true;
-    }
-  }).filter(function (element) {
-    if (element != null) {
-      return element;
+      cbChecked = true;
     }
   });
-  
+
   const button = document.getElementsByClassName('dynamic_btn');
-  if (checkedArray.length != 0){
-    for (let i = 0; i < button.length; i++) {
-      button[i].style.visibility = 'visible';
-    }
-  }
-  else {
-    for (let i = 0; i < button.length; i++) {
-      button[i].style.visibility = 'hidden';
-    }
+  for (let i = 0; i < button.length; i++) {
+    button[i].style.visibility = cbChecked ? 'visible' : 'hidden';
   }
 }
 
@@ -330,7 +320,6 @@ async function downloadAllImages(jsonSummaryKeys) {
 // Download user-selected images per temporary episode session
 function downloadSelected() {
   var checkboxes = document.getElementsByTagName('input');
-  var s3Prefix = "s3://" + albumBucketName + '/';
 
   var imageKeys = Array.from(checkboxes).map(function (checkbox) {
     if (checkbox.checked) {
