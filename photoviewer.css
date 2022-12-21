@@ -81,11 +81,7 @@ img {
 .gallery_obj_selection:hover {
     transform: scale(2.5);
     z-index: 5;
- }
-
- .download_button:hover{
-   cursor: pointer;
- }
+}
 
 .download_button {
    background-color: #edeff3;
@@ -96,11 +92,16 @@ img {
    text-decoration: none;
    display: inline-block;
    font-size: 16px;
-   }
+}
+
+.download_button:hover {
+   cursor: pointer;
+   background-image: linear-gradient(to bottom right, white, 90%, red);
+}
 
 #pv {
     z-index: -1;
- }
+}
  
 #viewer {
    display:flex;

@@ -61,7 +61,7 @@ function addSections() {
   document.getElementById("pv").appendChild(footerDiv);
 }
 
-function toogleHeaderSections(view) {
+function toggleHeaderSections(view) {
   document.getElementById("header_card").style.display = view;
 }
 
@@ -147,7 +147,23 @@ function listEpisodes() {
       document.getElementById('footer').innerHTML = "";
     }
   });
-  toogleHeaderSections("block");
+  toggleHeaderSections("block");
+}
+
+function clickCheckbox(){
+  var checkboxes = document.getElementsByTagName('input');
+
+  var cbChecked = false;
+  Array.from(checkboxes).forEach(function(checkbox){
+    if (checkbox.checked) { 
+      cbChecked = true;
+    }
+  });
+
+  const button = document.getElementsByClassName('dynamic_btn');
+  for (let i = 0; i < button.length; i++) {
+    button[i].style.visibility = cbChecked ? 'visible' : 'hidden';
+  }
 }
 
 // Display the images in a given episode
@@ -160,7 +176,7 @@ function viewEpisode(episodeName) {
     var imagesHtml = data.Contents.map(function (thumbnailObject) {
       var signedThumbnailUrl = s3.getSignedUrl('getObject', { Key: thumbnailObject.Key });
       return getHtml([
-        '<li class="gallery_list_obj"><input type="checkbox" id="cb' + thumbnailKeyToImageKey(thumbnailObject.Key) + '" />',
+        '<li class="gallery_list_obj"><input type="checkbox" onclick="clickCheckbox()" id="cb' + thumbnailKeyToImageKey(thumbnailObject.Key) + '" />',
         '<label class="gallery_obj_selection" for="cb' + thumbnailKeyToImageKey(thumbnailObject.Key) + '"><img src="' + signedThumbnailUrl + '" /></label>',
         '</li>'
       ]);
@@ -198,7 +214,13 @@ function viewEpisode(episodeName) {
       '</button>',
       '</div>',
       '<div>',
-      '<button style="float: right;" class="basic_btn" onclick="onSubmit()">',
+      '<button style="float: right; margin-left: 25px;" class="dynamic_btn" onclick="downloadSelected()">',
+      '<i class="fa fa-folder"></i>', 
+      ' Download Selected Images',
+      '</button>',
+      '</div>',
+      '<div>',
+      '<button style="float: right;" class="dynamic_btn" onclick="onSubmit()">',
       '<i class="fa fa-thumbs-up"></i> ',
       ' Submit new JSON summary',
       '</button>',
@@ -225,7 +247,7 @@ function viewEpisode(episodeName) {
       img.style.aspectRatio = ratio;
     })
   });
-  toogleHeaderSections("none");
+  toggleHeaderSections("none");
 }
 
 // Download images from the bucket specified by an existing JSON summary file for the episode
@@ -295,6 +317,49 @@ async function downloadAllImages(jsonSummaryKeys) {
   });
 }
 
+// Download user-selected images per temporary episode session
+function downloadSelected() {
+  var checkboxes = document.getElementsByTagName('input');
+
+  var imageKeys = Array.from(checkboxes).map(function (checkbox) {
+    if (checkbox.checked) {
+      var imageKeyArray = checkbox.id.slice(2); 
+      return imageKeyArray;
+    }
+  }).filter(function (element) {
+    if (element != null) {
+      return element;
+    }
+  });
+
+  if (imageKeys.length != 0){ //this check is void with dynamic button
+    var imageSignedURLs = new Map();
+    var promises = new Array(); 
+    var zip = JSZip();
+
+    imageKeys.forEach(function (imageURL) {
+      var signedImageUrl = s3.getSignedUrl('getObject', {Key: imageURL});
+      imageName = imageURL.split('/').at(-1);
+      return imageSignedURLs.set(imageName, signedImageUrl);
+    });
+    imageSignedURLs.forEach(function (signedUrl, imageName) {
+      promises.push(fetch(signedUrl)
+        .then(resp => resp.blob())
+        .then(blob => zip.file(imageName, blob))
+        .catch(() => alert('Error downloading ' + imageName)));
+    });
+    Promise.all(promises).then(() => { ////
+      zip.generateAsync({ type: 'blob' }).then(function (zipFile) {
+        var currentDate = new Date().getTime();
+        return saveAs(zipFile, `tempSessionSelection_${currentDate}.zip`);
+      });
+    });
+  }
+  else {
+    alert('No images selected to download!');
+  }
+}
+
 // Make and push JSON summary file specifying user-selected images
 function onSubmit() {
   var checkboxes = document.getElementsByTagName('input');
@@ -322,13 +387,18 @@ function onSubmit() {
     }
   });
 
-  var jsonContent = {
-    "s3Prefix": s3Prefix,
-    "ImageKeyPrefix": imageKeyPrefix,
-    "ImagesForAnnotation": imageNames,
-    "Episode": episode,
-  };
-  uploadJsonSummaryToS3(jsonContent);
+  if (imageNames.length != 0){ //this check is void with dynamic button
+    var jsonContent = {
+      "s3Prefix": s3Prefix,
+      "ImageKeyPrefix": imageKeyPrefix,
+      "ImagesForAnnotation": imageNames,
+      "Episode": episode,
+    };
+    uploadJsonSummaryToS3(jsonContent);
+  }
+  else {
+    alert('No images selected to submit as JSON!');
+  }
 }
 
 function uploadJsonSummaryToS3(jsonObject) {
