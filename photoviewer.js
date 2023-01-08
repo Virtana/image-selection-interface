@@ -121,9 +121,9 @@ async function listEpisodes() {
     '<div class="general_card">',
     '<h2>Episodes</h2>',
     message,
-    '<ul>',
+    '<ol>',
     getHtml(episodesHtml),
-    '</ul>',
+    '</ol>',
     '</div>'
   ];
 
