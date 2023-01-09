@@ -1,5 +1,6 @@
 // Constants
 const albumBucketName = 'virtana-flight-datasets';
+const dynamoTableName = 'virtana-flight-datasets';
 
 // Set region
 AWS.config.region = 'us-east-2';
@@ -19,6 +20,10 @@ function setCredentials() {
   s3 = new AWS.S3({
     apiVersion: '2006-03-01',
     params: { Bucket: albumBucketName }
+  });
+
+  dynamo = new AWS.DynamoDB({
+    apiVersion: '2012-08-10',
   });
 }
 
@@ -65,6 +70,65 @@ function toggleHeaderSections(view) {
   document.getElementById("header_card").style.display = view;
 }
 
+async function queryTable(tableName, tableKey){
+  var params = {
+    AttributesToGet: [
+      "uploaded_to_zip", "s3_filepath"
+    ],
+    TableName : tableName,
+    Key : { 
+      "s3_filepath" : {
+        "S" : tableKey
+      }
+    }
+  }
+
+  try {
+    response = await dynamo.getItem(params).promise();
+    return response.Item.uploaded_to_zip.BOOL;
+    // console.log(response?.Item?.s3_filepath?.S, response?.Item?.uploaded_to_zip?.BOOL);
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function generateCFState() {
+  var marker;
+  var truncated = true;
+  const elements = [];
+  var cfStates = new Map()
+  var svo = 0;
+  var mp4 = 0;
+  while (truncated) {
+    if (marker) {
+      var params = { Marker: marker }
+    }
+    try {
+      response = await s3.listObjects(params).promise();
+      response.Contents.forEach(async (item) => {
+        if (item.Key.endsWith('.svo')) {
+          data = await queryTable(dynamoTableName, item.Key.slice(0,-4));
+          cfStates.set(item.Key.slice(16,-4), data);
+          svo = svo + 1;
+          console.log(item.Key, svo);
+        }
+        if (item.Key.endsWith('.mp4')) {
+          mp4 = mp4 + 1;
+        }
+        elements.push(item.Key);
+      });
+      truncated = response.IsTruncated;
+      if (truncated) {
+        marker = response.Contents.slice(-1)[0].Key;
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+  // console.log(svo, mp4);
+  return [elements, cfStates];
+}
+
 // List the episodes that exist in the bucket
 async function listEpisodes() {
   // add div sections for gallery viewing
@@ -72,20 +136,26 @@ async function listEpisodes() {
 
   document.getElementById("header_card").style.margin = "auto";
 
-  const bucketObjectKeys = await listAllObjects();
+  var episodeToJsonSummaryKey = new Map();
+  var info, bucketObjectKeys, sentToCFMap;
+
+  info = await generateCFState(); 
+
+  bucketObjectKeys = info[0];
+  sentToCFMap = info[1];
+  console.log(sentToCFMap.size);
 
   // Map episodes to the key of their accompanying json summary file
   // The json summary means the episode has already been down-selected from, it contains names of the images chosen for annotation
-  var episodeToJsonSummaryKey = new Map();
 
   // Go through all images to determine what episodes have images in the bucket that we can down-select from
   // We initialize all episodes' accompanying json summary in the map as non-existent
-  bucketObjectKeys.forEach(key => {
+  bucketObjectKeys.forEach(async (key) => {
     if (key.endsWith('.png')) {
       episodeToJsonSummaryKey.set(imageKeyToEpisodeName(key), '');
     }
   })
-
+ 
   // Find all json summaries and update map to reflect that they exist for the appropriate episode
   bucketObjectKeys.forEach(key => {
     if (key.includes('images_for_annotation.json')) {
@@ -96,14 +166,25 @@ async function listEpisodes() {
   // Array to store the HTML elements that will represent each available episode
   var episodesHtml = new Array();
 
-  episodeToJsonSummaryKey.forEach(function (jsonKey, episodeName) {
+  episodeToJsonSummaryKey.forEach(await function (jsonKey, episodeName) {
+    console.log(sentToCFMap.get(episodeName));
+    if (sentToCFMap.get(episodeName) == true) {
+      var htmlElements = [
+        '<li>',
+        '<button class="sent_btn" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
+        episodeName,
+        '</button>'
+      ];
+    }
+    else {
     // Button to view the images from an episode
-    var htmlElements = [
-      '<li>',
-      '<button class="basic_btn" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
-      episodeName,
-      '</button>'
-    ];
+      var htmlElements = [
+        '<li>',
+        '<button class="basic_btn" style="margin:5px;" onclick="viewEpisode(\'' + episodeName + '\')">',
+        episodeName,
+        '</button>'
+      ];
+    }
     // If the json summary already exists, add a button to download the images specified by it
     if (jsonKey != '') {
       htmlElements.push('<button class="download_button" style="margin:5px;" onclick="downloadImages(\'' + jsonKey + '\')">',

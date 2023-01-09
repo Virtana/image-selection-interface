@@ -65,6 +65,23 @@ img {
   background-image: linear-gradient(to bottom right, white, 90%, red);
 }
 
+.sent_btn {
+  background-color: #b1c5ee;
+  border-radius: 50px;
+  border: 2px;
+  color: #1f2837;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+}
+
+.sent_btn:hover  {
+  cursor: pointer;
+  background-image: linear-gradient(to bottom right, white, 90%, red);
+}
+
 .dynamic_btn {
   background-color: #edeff3;
   border-radius: 50px;
