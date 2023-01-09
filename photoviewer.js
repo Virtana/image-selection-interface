@@ -70,7 +70,17 @@ async function listEpisodes() {
   // add div sections for gallery viewing
   addSections();
 
-  document.getElementById("header_card").style.margin = "auto";
+  // Show loading symbol 
+  var htmlTemplate = [
+    '<div class="loading_card">',
+    '<img src="loading-gif.gif">',
+    '</div>',
+  ];
+  document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
+  document.getElementById('header').innerHTML = "";
+  document.getElementById('footer').innerHTML = "";
+
+  document.getElementById('header_card').style.margin = "auto";
 
   const bucketObjectKeys = await listAllObjects();
 
@@ -118,7 +128,7 @@ async function listEpisodes() {
   var message = episodesHtml.length ?
     '<p>Click on an episode to view images.</p>' : '<p>No episodes could be found.';
   var htmlTemplate = [
-    '<div class="general_card">',
+    '<div class="main_card">',
     '<h2>Episodes</h2>',
     message,
     '<ul>',
@@ -137,9 +147,9 @@ async function listEpisodes() {
     ]) :
     "No episodes have been down-selected yet";
 
-  document.getElementById('header').innerHTML = getHtml(htmlTemplate);
-  document.getElementById('viewer').innerHTML = footerTemplate;
-  document.getElementById('footer').innerHTML = "";
+  document.getElementById('header').innerHTML = "";
+  document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
+  document.getElementById('footer').innerHTML = footerTemplate;
 
   toggleHeaderSections("block");
 }

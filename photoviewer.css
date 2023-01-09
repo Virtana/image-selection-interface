@@ -104,11 +104,12 @@ img {
 }
  
 #viewer {
-   display:flex;
+   width: 100vw;
+   /* display:flex; */
    justify-content:center;
    flex-wrap: wrap;
    align-items: center;
-   margin: 10%;
+   margin-left: auto;
    margin-right: auto;
    margin-top: auto;
    margin-bottom: auto;
