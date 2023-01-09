@@ -27,6 +27,30 @@
   margin: 5%;
 }
 
+.loading_card {
+  text-align: center;
+  justify-content: center;
+  font-size: 100px;
+  color: white ;
+  padding: 2%;
+  margin: 5%;
+}
+
+.loading_card img{
+  height: 50px;
+  width: 50px;
+}
+
+.main_card {
+  max-width: 100%;
+  background-color: #1f2837;
+  color: #CFD8DC ;
+  box-shadow: 0 15px 16px 0 rgba(0,0,0,0.2);
+  justify-content: center;
+  padding: 2%;
+  margin: 5%;
+}
+
 .general_card_body {
  color: #CFD8DC  ;
  justify-content: center;
